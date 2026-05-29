@@ -3,20 +3,25 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import SanityImage from "../components/SanityImage.astro";
 import RichText from "../components/RichText.astro";
 import GalleryGrid from "../components/GalleryGrid.astro";
-import {
-	getSiteSettings,
-	getChapters,
-	getGalleryBySlug,
-} from "../lib/sanity/queries";
+import { getSiteSettings, getChapterSections } from "../lib/sanity/queries";
+import { urlFor } from "../lib/sanity/image";
 
-const [settings, chapters, powerGallery] = await Promise.all([
+const FEATURED_CHAPTER_SLUG = "you-know-what-you-have-to-do";
+
+const [settings, sections] = await Promise.all([
 	getSiteSettings(),
-	getChapters(),
-	getGalleryBySlug("what-is-your-power"),
+	getChapterSections(FEATURED_CHAPTER_SLUG),
 ]);
+
+const featuredSections = sections.slice(0, 4);
 
 const heroHeading = settings?.heroHeading ?? "A State of Becoming";
 const heroImages = settings?.heroImages ?? [];
+
+const coverFor = (section: (typeof featuredSections)[number]) =>
+	section.featuredImage?.asset
+		? urlFor(section.featuredImage).width(1000).auto("format").url()
+		: null;
 ---
 
 <BaseLayout title={settings?.title ?? "A State of Becoming"} wide={true}>
@@ -41,48 +46,69 @@ const heroImages = settings?.heroImages ?? [];
 		</div>
 	</section>
 
-	{powerGallery && powerGallery.items.length > 0 && (
-		<section class="power-section">
-			<div class="power-enso" aria-hidden="true"></div>
-			<div class="power-inner">
-				<h2>What is your power?</h2>
-				<p class="power-prose">
-					Where does it sit, your power?<br />
-					Where do you find the will each day to face the world?<br />
-					Search for your power &mdash; only you know where it is.
-				</p>
-				<p class="power-hint">Click on any image to explore the full story.</p>
-				<GalleryGrid
-					items={powerGallery.items}
-					columns={powerGallery.columns ?? 3}
-					id="gallery-home-power"
-				/>
-			</div>
-		</section>
-	)}
-
-	<section class="chapters-preview">
-		<h2>The chapters</h2>
-		<div class="chapter-grid">
-			{chapters.map((chapter) => (
-				<a class="chapter-card" href={`/chapters/${chapter.slug}`}>
-					{chapter.featuredImage && (
-						<div class="chapter-card-image">
-							<SanityImage image={chapter.featuredImage} width={500} height={340} alt={chapter.title} />
-						</div>
-					)}
-					<div class="chapter-card-body">
-						<span class="chapter-number">Chapter {chapter.order}</span>
-						<h3>{chapter.title}</h3>
-					</div>
-				</a>
-			))}
-		</div>
-		{chapters.length === 0 && (
-			<p class="empty">
-				Content has not been added yet. Visit the <a href="/studio">Studio</a> to begin.
+	<section class="power-section">
+		<div class="power-enso" aria-hidden="true"></div>
+		<div class="power-inner">
+			<h2 class="power-chapter">You know what you have to do</h2>
+			<h3 class="power-heading">What is your power?</h3>
+			<p class="power-prose">
+				Where does it sit, your power?<br />
+				Where do you find the will each day to face the world?<br />
+				Search for your power &mdash; only you know where it is.
 			</p>
-		)}
+
+			{featuredSections.length > 0 && (
+				<div class="chapter-panels" role="region" aria-label="Open each section to read more">
+					{featuredSections.map((section, index) => {
+						const cover = coverFor(section);
+						const hasGallery = (section.gallery?.items?.length ?? 0) > 0;
+						return (
+							<details class="chapter-panel" open={index === 0}>
+								<summary
+									style={cover ? `--chapter-bg: url('${cover}')` : undefined}
+								>
+									<span class="chapter-panel-title">{section.title}</span>
+								</summary>
+								<div class="chapter-panel-body">
+									{hasGallery ? (
+										<>
+											<h4 class="panel-gallery-title">Creative responses</h4>
+											<p class="panel-gallery-hint">Click on any image to explore the full story.</p>
+											<GalleryGrid
+												items={section.gallery!.items}
+												columns={section.gallery!.columns ?? 3}
+												id={`gallery-home-${section.slug}`}
+											/>
+										</>
+									) : (
+										<>
+											{section.reflection && section.reflection.length > 0 && (
+												<div class="panel-reflection">
+													{section.reflection.map((line) => (
+														<p class="chapter-panel-lead">{line}</p>
+													))}
+												</div>
+											)}
+											{section.story && section.story.length > 0 && (
+												<div class="chapter-panel-story">
+													<RichText value={section.story} />
+												</div>
+											)}
+										</>
+									)}
+								</div>
+							</details>
+						);
+					})}
+				</div>
+			)}
+
+			{featuredSections.length === 0 && (
+				<p class="empty">
+					Content has not been added yet. Visit the <a href="/studio">Studio</a> to begin.
+				</p>
+			)}
+		</div>
 	</section>
 </BaseLayout>
 
@@ -187,6 +213,18 @@ const heroImages = settings?.heroImages ?? [];
 		position: relative;
 		z-index: 1;
 	}
+	.power-chapter {
+		font-size: clamp(1.6rem, 4vw, 2.1rem);
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		margin-bottom: 0.75rem;
+	}
+	.power-heading {
+		font-size: clamp(1.4rem, 3vw, 2rem);
+		font-weight: 700;
+		margin: 0 0 1rem;
+	}
 	.power-prose {
 		font-size: clamp(1.3rem, 3vw, 1.75rem);
 		font-weight: 600;
@@ -195,64 +233,119 @@ const heroImages = settings?.heroImages ?? [];
 		margin: 1rem auto 0.5rem;
 		color: rgb(var(--color-neutral-800));
 	}
-	.power-hint {
-		color: rgb(var(--color-neutral-500));
-		font-size: 0.95rem;
-		margin-bottom: 2rem;
-	}
 
-	.chapters-preview {
-		margin-top: 4rem;
-	}
-	.chapters-preview h2 {
-		text-align: center;
-		margin-bottom: 2rem;
-	}
-	.chapter-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-		gap: 1.5rem;
-	}
-	.chapter-card {
+	.chapter-panels {
+		margin-top: 2.75rem;
+		max-width: 72rem;
+		width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+		text-align: left;
 		display: flex;
 		flex-direction: column;
-		border-radius: 12px;
+		gap: 0.75rem;
+	}
+	.chapter-panel {
+		--chapter-bg: none;
+		position: relative;
+		border-radius: 1rem;
 		overflow: hidden;
+		box-shadow: 0 12px 40px rgba(var(--color-neutral-900), 0.1);
+	}
+	.chapter-panel > summary {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+		list-style: none;
+		min-height: 8.75rem;
+		padding: 1.35rem 1.5rem;
+		cursor: pointer;
+		user-select: none;
+		background-image: var(--chapter-bg);
+		background-size: cover;
+		background-position: center;
+		background-color: #1a1a1a;
+	}
+	@media (min-width: 768px) {
+		.chapter-panel > summary {
+			min-height: 10.5rem;
+		}
+	}
+	.chapter-panel > summary::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(105deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.32) 55%, rgba(0, 0, 0, 0.5) 100%);
+		z-index: 0;
+		pointer-events: none;
+	}
+	.chapter-panel-title,
+	.chapter-panel > summary::before {
+		position: relative;
+		z-index: 1;
+	}
+	.chapter-panel-title {
+		display: block;
+		flex: 1;
+		font-size: clamp(1.5rem, 3vw, 2rem);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: 0.02em;
+		text-shadow: 0 2px 14px rgba(255, 255, 255, 0.45), 0 2px 32px rgba(0, 0, 0, 0.55);
+		color: #fff;
+	}
+	.chapter-panel > summary::-webkit-details-marker { display: none; }
+	.chapter-panel > summary::before {
+		content: "";
+		flex: 0 0 auto;
+		width: 0.4em;
+		height: 0.4em;
+		border-right: 2.5px solid rgba(255, 255, 255, 0.95);
+		border-bottom: 2.5px solid rgba(255, 255, 255, 0.95);
+		transform: rotate(-45deg);
+		transition: transform 0.2s ease;
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+	}
+	.chapter-panel[open] > summary::before {
+		transform: rotate(45deg) translate(0, -0.1em);
+	}
+	.chapter-panel[open] > summary::after {
+		background: linear-gradient(105deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%);
+	}
+	.chapter-panel-body {
+		padding: 1.5rem 1.75rem 1.75rem;
+		font-size: 1rem;
+		line-height: 1.7;
 		background: rgb(var(--color-neutral));
-		border: 1px solid rgb(var(--color-neutral-200));
-		color: inherit;
-		text-decoration: none;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		text-align: left;
 	}
-	.chapter-card:hover {
-		transform: translateY(-4px);
-		box-shadow: 0 16px 32px rgba(var(--color-neutral-900), 0.12);
-		text-decoration: none;
+	.panel-gallery-title {
+		text-align: center;
+		font-size: 1.5rem;
+		font-weight: 700;
+		margin: 0 0 0.4rem;
 	}
-	.chapter-card-image {
-		aspect-ratio: 3 / 2;
-		overflow: hidden;
+	.panel-gallery-hint {
+		text-align: center;
+		color: rgb(var(--color-neutral-500));
+		font-size: 0.95rem;
+		margin: 0 0 1.5rem;
 	}
-	.chapter-card-image :global(img) {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
+	.panel-reflection {
+		margin-bottom: 1rem;
 	}
-	.chapter-card-body {
-		padding: 1.1rem 1.25rem;
+	.chapter-panel-lead {
+		font-weight: 600;
+		font-size: 1.06rem;
+		margin: 0 0 0.5rem;
 	}
-	.chapter-number {
-		font-size: 0.78rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: rgb(var(--color-primary-600));
-	}
-	.chapter-card-body h3 {
-		font-size: 1.2rem;
-		margin: 0.35rem 0 0;
+	.chapter-panel-story {
+		margin-top: 1rem;
+		padding-top: 0.9rem;
+		border-top: 1px solid rgba(var(--color-neutral-900), 0.1);
 	}
 	.empty {
-		text-align: center;
 		color: rgb(var(--color-neutral-500));
 	}
 

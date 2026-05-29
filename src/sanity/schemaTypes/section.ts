@@ -52,6 +52,14 @@ export const section = defineType({
 			title: "Story",
 			type: "blockContent",
 		}),
+		defineField({
+			name: "gallery",
+			title: "Gallery",
+			description:
+				"Optional. Embeds this gallery's creative responses within the section.",
+			type: "reference",
+			to: [{ type: "gallery" }],
+		}),
 	],
 	orderings: [
 		{

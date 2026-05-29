@@ -47,6 +47,17 @@ const galleryItemFields = `
 	titleStyle
 `;
 
+// Section fields plus its (optional) embedded gallery and resolved items.
+const sectionWithGalleryFields = `
+	${sectionFields},
+	gallery->{
+		_id,
+		title,
+		columns,
+		"items": *[_type == "galleryItem" && gallery._ref == ^._id] | order(order asc){${galleryItemFields}}
+	}
+`;
+
 // --- Queries ----------------------------------------------------------------
 
 export async function getSiteSettings(): Promise<SiteSettings | null> {
@@ -73,6 +84,15 @@ export async function getChapterBySlug(slug: string): Promise<
 			"sections": *[_type == "section" && chapter._ref == ^._id] | order(order asc){${sectionFields}}
 		}`,
 		{ slug },
+	);
+}
+
+export async function getChapterSections(
+	chapterSlug: string,
+): Promise<Section[]> {
+	return sanityClient.fetch(
+		`*[_type == "section" && chapter->slug.current == $chapterSlug] | order(order asc){${sectionWithGalleryFields}}`,
+		{ chapterSlug },
 	);
 }
 

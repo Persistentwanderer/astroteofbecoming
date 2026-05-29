@@ -23,6 +23,14 @@ export interface Section {
 	featuredImage?: SanityImageWithAlt;
 	reflection?: string[];
 	story?: PortableTextBlock[];
+	gallery?: SectionGallery;
+}
+
+export interface SectionGallery {
+	_id: string;
+	title: string;
+	columns?: number;
+	items: GalleryItem[];
 }
 
 export interface GalleryItem {
