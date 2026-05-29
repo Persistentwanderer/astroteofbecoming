@@ -7,8 +7,12 @@ import react from "@astrojs/react";
 import sanity from "@sanity/astro";
 import cloudflare from "@astrojs/cloudflare";
 
+// projectId and dataset are public (they ship in client-side requests), so we
+// commit safe defaults. This keeps remote builds (e.g. Cloudflare Workers
+// Builds, which don't see the gitignored .env) from inlining an empty
+// projectId, which would make @sanity/client throw on every SSR render.
 const {
-	PUBLIC_SANITY_PROJECT_ID = "",
+	PUBLIC_SANITY_PROJECT_ID = "s3iiyuuu",
 	PUBLIC_SANITY_DATASET = "production",
 } = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
 
