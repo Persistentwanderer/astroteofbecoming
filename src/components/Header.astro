@@ -9,9 +9,13 @@ interface Props {
 const { chapters = [] } = Astro.props;
 ---
 
-<header>
+<header class="site-header">
+	<div class="site-header-glass" aria-hidden="true"></div>
 	<nav>
-		<a class="site-title" href="/">{SITE_TITLE}</a>
+		<a class="site-logo" href="/">
+			<span class="sr-only">{SITE_TITLE}</span>
+			<img src="/site-logo.webp" alt="" width="520" height="520" />
+		</a>
 		<button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
 			<span></span><span></span><span></span>
 		</button>
@@ -33,29 +37,61 @@ const { chapters = [] } = Astro.props;
 </header>
 
 <style>
-	header {
+	/* Frosted glass — all visuals scale with --header-glass-strength (0→1) from scroll */
+	.site-header {
+		--header-glass-strength: 0;
 		margin: 0;
 		padding: 0 1.5em;
-		background: rgb(var(--color-neutral));
-		border-bottom: 1px solid rgb(var(--color-neutral-200));
-		position: sticky;
+		position: fixed;
 		top: 0;
+		left: 0;
+		right: 0;
 		z-index: 50;
+		isolation: isolate;
+	}
+	.site-header-glass {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		opacity: calc(0.55 + var(--header-glass-strength) * 0.45);
+		background: rgba(
+			var(--color-neutral-100),
+			calc(0.4 + var(--header-glass-strength) * 0.35)
+		);
+		backdrop-filter: blur(calc(24px + var(--header-glass-strength) * 16px))
+			saturate(calc(1.35 + var(--header-glass-strength) * 0.15));
+		-webkit-backdrop-filter: blur(calc(24px + var(--header-glass-strength) * 16px))
+			saturate(calc(1.35 + var(--header-glass-strength) * 0.15));
+		border-bottom: 1px solid
+			rgba(var(--color-neutral-900), calc(0.05 + var(--header-glass-strength) * 0.03));
+		box-shadow: 0 calc(4px + var(--header-glass-strength) * 10px)
+			calc(14px + var(--header-glass-strength) * 30px)
+			calc(-10px + var(--header-glass-strength) * -2px)
+			rgba(var(--color-neutral-900), calc(0.02 + var(--header-glass-strength) * 0.08));
 	}
 	nav {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		max-width: var(--wide-width);
 		margin: 0 auto;
 	}
-	.site-title {
-		font-weight: 700;
-		font-size: 1.1rem;
-		color: rgb(var(--color-neutral-900));
+	.site-logo {
+		display: flex;
+		align-items: center;
 		text-decoration: none;
-		letter-spacing: 0.02em;
-		padding: 1em 0;
+		padding: 0.6em 0;
+	}
+	.site-logo img {
+		max-height: 5rem;
+		max-width: 5rem;
+		width: auto;
+		height: auto;
+		object-fit: contain;
+		object-position: left center;
 	}
 	.internal-links {
 		display: flex;
@@ -64,6 +100,8 @@ const { chapters = [] } = Astro.props;
 	}
 	.internal-links :global(a) {
 		padding: 1em 0.75em;
+		font-size: 1rem;
+		font-weight: 500;
 		color: rgb(var(--color-neutral-700));
 		border-bottom: 3px solid transparent;
 		text-decoration: none;
@@ -80,10 +118,14 @@ const { chapters = [] } = Astro.props;
 		top: 100%;
 		left: 0;
 		min-width: 16rem;
-		background: rgb(var(--color-neutral));
-		border: 1px solid rgb(var(--color-neutral-200));
-		border-radius: 0 0 8px 8px;
-		box-shadow: 0 12px 28px rgba(var(--color-neutral-900), 0.12);
+		background: rgba(var(--color-neutral-100), 0.88);
+		backdrop-filter: blur(24px) saturate(1.35);
+		-webkit-backdrop-filter: blur(24px) saturate(1.35);
+		border: 1px solid rgba(var(--color-neutral-900), 0.06);
+		border-radius: 0.75rem;
+		box-shadow:
+			0 4px 14px -10px rgba(var(--color-neutral-900), 0.03),
+			0 20px 44px -12px rgba(var(--color-neutral-900), 0.1);
 		opacity: 0;
 		visibility: hidden;
 		transform: translateY(-6px);
@@ -102,9 +144,10 @@ const { chapters = [] } = Astro.props;
 		padding: 0.5em 1.25em;
 		border-bottom: none;
 		font-size: 0.95rem;
+		color: rgb(var(--color-neutral-900));
 	}
 	.dropdown-menu :global(a):hover {
-		background: rgb(var(--color-primary-50));
+		background: rgba(var(--color-primary-50), 0.75);
 	}
 	.nav-toggle {
 		display: none;
@@ -133,8 +176,13 @@ const { chapters = [] } = Astro.props;
 			right: 0;
 			flex-direction: column;
 			align-items: stretch;
-			background: rgb(var(--color-neutral));
-			border-bottom: 1px solid rgb(var(--color-neutral-200));
+			background: rgba(var(--color-neutral-100), 0.88);
+			backdrop-filter: blur(24px) saturate(1.35);
+			-webkit-backdrop-filter: blur(24px) saturate(1.35);
+			border-bottom: 1px solid rgba(var(--color-neutral-900), 0.06);
+			box-shadow:
+				0 4px 14px -10px rgba(var(--color-neutral-900), 0.03),
+				0 20px 44px -12px rgba(var(--color-neutral-900), 0.1);
 			padding: 0.5em 1em 1em;
 		}
 		.internal-links.open {
@@ -153,10 +201,58 @@ const { chapters = [] } = Astro.props;
 </style>
 
 <script>
-	const toggle = document.querySelector(".nav-toggle");
-	const links = document.querySelector(".internal-links");
-	toggle?.addEventListener("click", () => {
-		const open = links?.classList.toggle("open");
-		toggle.setAttribute("aria-expanded", String(!!open));
+	let headerAbort: AbortController | undefined;
+
+	function initSiteHeader() {
+		const header = document.querySelector<HTMLElement>(".site-header");
+		if (!header) return;
+
+		headerAbort?.abort();
+		headerAbort = new AbortController();
+		const { signal } = headerAbort;
+
+		const setHeaderHeight = () => {
+			document.documentElement.style.setProperty(
+				"--site-header-height",
+				`${header.offsetHeight}px`,
+			);
+		};
+
+		let ticking = false;
+		const updateScrollState = () => {
+			const strength = Math.min(1, window.scrollY / 280);
+			header.style.setProperty("--header-glass-strength", String(strength));
+			ticking = false;
+		};
+
+		const onScroll = () => {
+			if (!ticking) {
+				ticking = true;
+				requestAnimationFrame(updateScrollState);
+			}
+		};
+
+		setHeaderHeight();
+		updateScrollState();
+		window.addEventListener("scroll", onScroll, { passive: true, signal });
+		window.addEventListener("resize", setHeaderHeight, { signal });
+	}
+
+	function initNavToggle() {
+		const toggle = document.querySelector(".nav-toggle");
+		const links = document.querySelector(".internal-links");
+		if (!toggle || toggle.dataset.bound === "true") return;
+		toggle.dataset.bound = "true";
+		toggle.addEventListener("click", () => {
+			const open = links?.classList.toggle("open");
+			toggle.setAttribute("aria-expanded", String(!!open));
+		});
+	}
+
+	initSiteHeader();
+	initNavToggle();
+	document.addEventListener("astro:page-load", () => {
+		initSiteHeader();
+		initNavToggle();
 	});
 </script>

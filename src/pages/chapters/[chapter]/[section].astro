@@ -2,20 +2,27 @@
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import SanityImage from "../../../components/SanityImage.astro";
 import RichText from "../../../components/RichText.astro";
-import { getSectionBySlug } from "../../../lib/sanity/queries";
+import GalleryGrid from "../../../components/GalleryGrid.astro";
+import {
+	getSectionWithGalleryBySlug,
+	POWER_COVER_PATH,
+	POWER_GALLERY_SLUG,
+} from "../../../lib/sanity/queries";
 
 const { chapter: chapterSlug, section: sectionSlug } = Astro.params;
 const section =
 	chapterSlug && sectionSlug
-		? await getSectionBySlug(chapterSlug, sectionSlug)
+		? await getSectionWithGalleryBySlug(chapterSlug, sectionSlug)
 		: null;
 
 if (!section) {
 	return new Response(null, { status: 404, statusText: "Section not found" });
 }
+
+const hasGallery = (section.gallery?.items?.length ?? 0) > 0;
 ---
 
-<BaseLayout title={`${section.title} — A State of Becoming`}>
+<BaseLayout title={`${section.title} — A State of Becoming`} wide={hasGallery}>
 	<article class="section">
 		<nav class="breadcrumb">
 			<a href="/chapters">Chapters</a>
@@ -29,24 +36,43 @@ if (!section) {
 
 		<h1>{section.title}</h1>
 
-		{section.featuredImage && (
+		{section.slug === POWER_GALLERY_SLUG ? (
 			<figure class="section-image">
-				<SanityImage image={section.featuredImage} width={1200} alt={section.title} loading="eager" />
+				<img src={POWER_COVER_PATH} alt={section.title} width={1200} height={800} loading="eager" />
 			</figure>
+		) : (
+			section.featuredImage && (
+				<figure class="section-image">
+					<SanityImage image={section.featuredImage} width={1200} alt={section.title} loading="eager" />
+				</figure>
+			)
 		)}
 
-		{section.reflection && section.reflection.length > 0 && (
-			<div class="reflection">
-				{section.reflection.map((line) => (
-					<p>{line}</p>
-				))}
+		{hasGallery ? (
+			<div class="gallery-section">
+				<p class="gallery-hint">Click on any image to explore the full story.</p>
+				<GalleryGrid
+					items={section.gallery!.items}
+					columns={section.gallery!.columns ?? 3}
+					id={`gallery-section-${section.slug}`}
+				/>
 			</div>
-		)}
+		) : (
+			<>
+				{section.reflection && section.reflection.length > 0 && (
+					<div class="reflection">
+						{section.reflection.map((line) => (
+							<p>{line}</p>
+						))}
+					</div>
+				)}
 
-		{section.story && section.story.length > 0 && (
-			<div class="story">
-				<RichText value={section.story} />
-			</div>
+				{section.story && section.story.length > 0 && (
+					<div class="story">
+						<RichText value={section.story} />
+					</div>
+				)}
+			</>
 		)}
 	</article>
 </BaseLayout>
@@ -70,9 +96,19 @@ if (!section) {
 		border-radius: 12px;
 		overflow: hidden;
 	}
-	.section-image :global(img) {
+	.section-image :global(img),
+	.section-image img {
 		width: 100%;
 		display: block;
+	}
+	.gallery-section {
+		margin-top: 0.5rem;
+	}
+	.gallery-hint {
+		text-align: center;
+		color: rgb(var(--color-neutral-500));
+		font-size: 0.95rem;
+		margin: 0 0 1.5rem;
 	}
 	.reflection {
 		font-size: 1.4rem;

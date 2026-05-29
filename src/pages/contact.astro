@@ -8,82 +8,284 @@ const [page, settings] = await Promise.all([
 	getSiteSettings(),
 ]);
 
-// Keeps the existing Formspree endpoint from the original site.
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/xaqaenyp";
 const email = settings?.contactEmail ?? "hello@astateofbecoming.com";
 ---
 
-<BaseLayout title="Contact — A State of Becoming">
-	<article class="prose">
+<BaseLayout
+	title="Contact — A State of Becoming"
+	description="Get in touch with A State of Becoming"
+	wide={true}
+>
+	<article class="contact-page">
 		<h1>{page?.title ?? "Contact"}</h1>
-		{page?.body && <RichText value={page.body} />}
 
-		<form class="contact-form" action={FORMSPREE_ENDPOINT} method="POST">
-			<label>
-				Name
-				<input type="text" name="name" required />
-			</label>
-			<label>
-				Email
-				<input type="email" name="email" required />
-			</label>
-			<label>
-				Message
-				<textarea name="message" rows="6" required></textarea>
-			</label>
-			<button type="submit">Send message</button>
+		{page?.body ? (
+			<div class="contact-intro">
+				<RichText value={page.body} />
+			</div>
+		) : (
+			<>
+				<h2 class="contact-intro-heading">Share Your Creative Response</h2>
+				<p class="contact-lead">
+					Have you been inspired by one of our chapters? We'd love to feature your creative response on our site. Tell us about your work using the form below.
+				</p>
+			</>
+		)}
+
+		<form class="contact-form" action="/api/contact" method="POST">
+			<div class="form-group">
+				<label for="name">Your name</label>
+				<input
+					type="text"
+					id="name"
+					name="name"
+					placeholder="How you'd like to be credited"
+					required
+				/>
+			</div>
+
+			<div class="form-group">
+				<label for="email">Email</label>
+				<input
+					type="email"
+					id="email"
+					name="email"
+					placeholder="your@email.com"
+					required
+				/>
+			</div>
+
+			<div class="form-group">
+				<label for="chapter">Which chapter inspired you?</label>
+				<input
+					type="text"
+					id="chapter"
+					name="chapter"
+					placeholder="e.g. What is your power?"
+				/>
+			</div>
+
+			<div class="form-group">
+				<label for="workTitle">Work title</label>
+				<input
+					type="text"
+					id="workTitle"
+					name="workTitle"
+					placeholder="The title of your creative piece"
+					required
+				/>
+			</div>
+
+			<div class="form-group">
+				<label for="description">Tell us about your work</label>
+				<textarea
+					id="description"
+					name="message"
+					rows="5"
+					placeholder="Describe your creative piece, the story behind it, or anything you'd like us to know."
+					required
+				></textarea>
+			</div>
+
+			<div class="form-group">
+				<label for="link">Link to your work (optional)</label>
+				<input
+					type="url"
+					id="link"
+					name="link"
+					placeholder="https://drive.google.com/... or https://www.dropbox.com/..."
+					inputmode="url"
+					autocomplete="url"
+				/>
+				<p class="link-hint" id="link-hint">
+					Share a public Google Drive or Dropbox link only. For safety, we cannot accept zip files or links from other hosts.
+				</p>
+			</div>
+
+			<div class="form-footer">
+				<button type="submit">Send</button>
+				<p class="form-status" role="status" aria-live="polite"></p>
+				<p>
+					You can also reach us directly at <a href={`mailto:${email}`}>{email}</a>
+				</p>
+			</div>
 		</form>
-
-		<p class="email-fallback">
-			Or email us directly at <a href={`mailto:${email}`}>{email}</a>.
-		</p>
 	</article>
 </BaseLayout>
 
 <style>
-	.contact-form {
-		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
-		margin: 2rem 0;
+	.contact-page h1 {
+		margin-bottom: 1.5rem;
 	}
-	.contact-form label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-		font-weight: 600;
+
+	.contact-intro :global(h2),
+	.contact-intro :global(h3) {
+		font-size: 1.5rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.contact-intro-heading {
+		font-size: 1.5rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.contact-lead {
+		max-width: 40rem;
 		color: rgb(var(--color-neutral-700));
+		margin-bottom: 0.5rem;
 	}
+
+	.contact-form {
+		max-width: 40rem;
+		margin: 2rem auto;
+		padding: 2.5rem;
+		background: rgb(var(--color-neutral-100));
+		border-radius: 1rem;
+		border: 1px solid rgb(var(--color-neutral-200));
+	}
+
+	.contact-form label {
+		display: block;
+		font-weight: 600;
+		margin-bottom: 0.35rem;
+		font-size: 0.95rem;
+		color: rgb(var(--color-neutral-800));
+	}
+
 	.contact-form input,
 	.contact-form textarea {
-		font-family: inherit;
-		font-size: 1rem;
-		padding: 0.75em;
+		width: 100%;
+		padding: 0.6rem 0.85rem;
 		border: 1px solid rgb(var(--color-neutral-300));
-		border-radius: 8px;
-		background: rgb(var(--color-neutral));
+		border-radius: 0.5rem;
+		font-size: 1rem;
+		font-family: inherit;
+		background: rgb(var(--color-neutral-50));
+		color: rgb(var(--color-neutral-900));
+		transition: border-color 0.2s ease;
+		box-sizing: border-box;
 	}
+
 	.contact-form input:focus,
 	.contact-form textarea:focus {
 		outline: none;
 		border-color: rgb(var(--color-primary-500));
-		box-shadow: 0 0 0 3px rgb(var(--color-primary-100));
+		box-shadow: 0 0 0 2px rgb(var(--color-primary-100));
 	}
-	.contact-form button {
-		align-self: flex-start;
-		padding: 0.8em 1.8em;
+
+	.contact-form .form-group {
+		margin-bottom: 1.25rem;
+	}
+
+	.contact-form .link-hint {
+		margin: 0.4rem 0 0;
+		font-size: 0.85rem;
+		color: rgb(var(--color-neutral-500));
+		line-height: 1.45;
+	}
+
+	.contact-form textarea {
+		resize: vertical;
+		min-height: 6rem;
+	}
+
+	.contact-form button[type="submit"] {
+		display: inline-block;
+		padding: 0.65rem 2rem;
 		background: rgb(var(--color-primary-600));
 		color: #fff;
 		border: none;
-		border-radius: 8px;
-		font-weight: 600;
+		border-radius: 0.5rem;
 		font-size: 1rem;
+		font-weight: 600;
 		cursor: pointer;
+		transition: background 0.2s ease, transform 0.1s ease;
 	}
-	.contact-form button:hover {
+
+	.contact-form button[type="submit"]:hover:not(:disabled) {
 		background: rgb(var(--color-primary-700));
 	}
-	.email-fallback {
-		color: rgb(var(--color-neutral-600));
+
+	.contact-form button[type="submit"]:active:not(:disabled) {
+		transform: scale(0.98);
+	}
+
+	.contact-form button[type="submit"]:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	.contact-form .form-footer {
+		text-align: center;
+		margin-top: 1.5rem;
+	}
+
+	.contact-form .form-footer p {
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+		color: rgb(var(--color-neutral-500));
+	}
+
+	.form-status:empty {
+		display: none;
+	}
+
+	.form-status {
+		color: rgb(var(--color-primary-700));
+		font-weight: 600;
+	}
+
+	.form-status.error {
+		color: rgb(180, 40, 40);
 	}
 </style>
+
+<script>
+	import { validateWorkLink } from "../lib/contactWorkLink";
+
+	const form = document.querySelector<HTMLFormElement>(".contact-form");
+	const status = document.querySelector<HTMLParagraphElement>(".form-status");
+	const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+	const linkInput = document.querySelector<HTMLInputElement>("#link");
+
+	form?.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		if (!form || !status || !submit) return;
+
+		status.textContent = "";
+		status.classList.remove("error");
+
+		const linkCheck = validateWorkLink(linkInput?.value ?? "");
+		if (!linkCheck.valid) {
+			status.textContent = linkCheck.message;
+			status.classList.add("error");
+			linkInput?.focus();
+			return;
+		}
+
+		submit.disabled = true;
+		submit.textContent = "Sending…";
+
+		try {
+			const response = await fetch(form.action, {
+				method: "POST",
+				body: new FormData(form),
+			});
+			const data = (await response.json()) as { message?: string };
+
+			if (!response.ok) {
+				throw new Error(data.message ?? "Something went wrong");
+			}
+
+			status.textContent = data.message ?? "Thank you — your message has been sent.";
+			form.reset();
+		} catch (err) {
+			status.textContent =
+				err instanceof Error ? err.message : "Unable to send your message.";
+			status.classList.add("error");
+		} finally {
+			submit.disabled = false;
+			submit.textContent = "Send";
+		}
+	});
+</script>

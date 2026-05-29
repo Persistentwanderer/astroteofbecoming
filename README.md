@@ -103,8 +103,17 @@ npm run build
 npm run deploy
 ```
 
-Set `PUBLIC_SANITY_PROJECT_ID` and `PUBLIC_SANITY_DATASET` as Worker
-environment variables in the Cloudflare dashboard (or `wrangler.json` vars).
+Environment variables are resolved in this order (first match wins):
+
+| Variable | Local dev | Deploy |
+| --- | --- | --- |
+| `PUBLIC_SANITY_PROJECT_ID` | `.env` | `wrangler.json` → `vars`, or Cloudflare Workers Builds env vars |
+| `PUBLIC_SANITY_DATASET` | `.env` | same (defaults to `production`) |
+| `SANITY_API_READ_TOKEN` | `.env` | Cloudflare dashboard secret (optional; draft preview only) |
+
+Public Sanity IDs live in `wrangler.json` `vars` — deployment config, not
+application code. Override per environment in the Cloudflare dashboard if
+needed. Secrets never belong in the repo.
 
 ## Commands
 

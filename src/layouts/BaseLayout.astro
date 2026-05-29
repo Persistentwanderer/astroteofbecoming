@@ -10,6 +10,7 @@ interface Props {
 	description?: string;
 	image?: string;
 	wide?: boolean;
+	homepage?: boolean;
 }
 
 const {
@@ -17,6 +18,7 @@ const {
 	description = SITE_DESCRIPTION,
 	image,
 	wide = false,
+	homepage = false,
 } = Astro.props;
 
 // Chapters drive the navigation, in book order.
@@ -33,11 +35,58 @@ try {
 	<head>
 		<BaseHead title={title} description={description} image={image} />
 	</head>
-	<body>
+	<body class:list={[homepage && "is-homepage"]}>
 		<Header chapters={chapters} />
-		<main class={wide ? "wide" : undefined}>
+		{homepage && <slot name="homepage-bg" />}
+		<main class:list={[wide && "wide", homepage && "homepage"]}>
 			<slot />
 		</main>
 		<Footer />
+		{homepage && (
+			<script is:inline>
+				(function () {
+					var RATE = 0.15;
+					var SEL = ".homepage-bg-parallax";
+					var layer = null;
+					var ticking = false;
+					var idleTimer = 0;
+
+					function update() {
+						ticking = false;
+						if (!layer) return;
+						layer.style.transform =
+							"translate3d(0, " + -window.scrollY * RATE + "px, 0)";
+					}
+
+					function onScroll() {
+						if (!layer) return;
+						// Promote to its own layer only while actively scrolling,
+						// then release it so a heavy open gallery doesn't compound GPU cost.
+						if (layer.style.willChange !== "transform") {
+							layer.style.willChange = "transform";
+						}
+						if (!ticking) {
+							ticking = true;
+							requestAnimationFrame(update);
+						}
+						clearTimeout(idleTimer);
+						idleTimer = setTimeout(function () {
+							layer.style.willChange = "auto";
+						}, 200);
+					}
+
+					function init() {
+						layer = document.querySelector(SEL);
+						if (!layer) return;
+						update();
+						window.removeEventListener("scroll", onScroll);
+						window.addEventListener("scroll", onScroll, { passive: true });
+					}
+
+					init();
+					document.addEventListener("astro:page-load", init);
+				})();
+			</script>
+		)}
 	</body>
 </html>

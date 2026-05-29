@@ -1,26 +1,168 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import RichText from "../components/RichText.astro";
-import { getPageBySlug } from "../lib/sanity/queries";
-
-const page = await getPageBySlug("about");
 ---
 
-<BaseLayout title={`${page?.title ?? "About"} — A State of Becoming`}>
-	<article class="prose">
-		<h1>{page?.title ?? "About"}</h1>
-		{page?.body ? (
-			<RichText value={page.body} />
-		) : (
-			<p class="empty">
-				This page has no content yet. Add an "About" page in the <a href="/studio">Studio</a>.
-			</p>
-		)}
+<BaseLayout title="About — A State of Becoming" description="About the authors" wide={true}>
+	<article class="about-page">
+		<h1>About</h1>
+
+		<section class="author-section photo-left">
+			<div class="author-photo animate-left delay-1">
+				<img src="/homepage-1.jpeg" alt="Dinos and Neil" width="450" height="600" />
+			</div>
+			<div class="author-content animate-right delay-2">
+				<h2>Dinos Aristidou</h2>
+				<p>
+					Dinos was born in London to Cypriot parents and this dual heritage led to a lifelong fascination and passion for cultural memory, identity and theatre.
+				</p>
+				<p>
+					He graduated from the University of York and completed his postgraduate teacher training at the University of Birmingham.
+				</p>
+				<p>
+					He spent the last 20 years as a freelancer, working with a diverse range of organisations, schools and communities in the UK and overseas, inspiring countless creative collaborations. At the same time, pursuing his passions for writing, directing, youth theatre and education.
+				</p>
+				<p class="author-quote">
+					He was one of the great luminaries of theatre education globally and the most genuine, generous, gorgeous and brilliantly funny colleague and friend.
+				</p>
+			</div>
+		</section>
+
+		<section class="author-section photo-right">
+			<div class="author-photo animate-right delay-2">
+				<img src="/homepage-2.jpeg" alt="Uly & Zani with Dinos" width="450" height="600" />
+			</div>
+			<div class="author-content animate-left delay-3">
+				<h2>Neil Farrelly</h2>
+				<p>
+					Neil studied at University of Middlesex, London. He is based in Asia teaching, directing, consulting, performing and developing projects with all kinds of interesting people.
+				</p>
+				<p>
+					He has produced a number of books including: <em>Damn It, Do</em>, with Sister Cyril and Greg Dale.
+				</p>
+				<p>
+					He lives in northern Japan with his wife.
+				</p>
+			</div>
+		</section>
 	</article>
 </BaseLayout>
 
 <style>
-	.empty {
+	@keyframes fadeInLeft {
+		from {
+			opacity: 0;
+			transform: translateX(-40px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes fadeInRight {
+		from {
+			opacity: 0;
+			transform: translateX(40px);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	.about-page h1 {
+		margin-bottom: 2rem;
+	}
+
+	.author-section {
+		display: flex;
+		align-items: center;
+		gap: 3rem;
+		margin-bottom: 4rem;
+		padding: 2rem 0;
+	}
+
+	.author-section.photo-left {
+		flex-direction: row;
+	}
+
+	.author-section.photo-right {
+		flex-direction: row-reverse;
+	}
+
+	.author-photo {
+		flex: 0 0 45%;
+		max-width: 450px;
+	}
+
+	.author-photo img {
+		width: 100%;
+		border-radius: 1rem;
+		box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+		transition: transform 0.4s ease, box-shadow 0.4s ease;
+	}
+
+	.author-photo img:hover {
+		transform: scale(1.03) rotate(1deg);
+		box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+	}
+
+	.author-content {
+		flex: 1;
+	}
+
+	.author-content h2 {
+		font-size: 2rem;
+		margin-bottom: 1rem;
+		color: rgb(var(--color-neutral-900));
+	}
+
+	.author-content p {
+		font-size: 1.1rem;
+		line-height: 1.8;
+		color: rgb(var(--color-neutral-700));
+		margin-bottom: 1rem;
+	}
+
+	.author-quote {
+		font-style: italic;
 		color: rgb(var(--color-neutral-500));
+	}
+
+	.animate-left {
+		animation: fadeInLeft 0.8s ease-out both;
+	}
+
+	.animate-right {
+		animation: fadeInRight 0.8s ease-out both;
+	}
+
+	.delay-1 {
+		animation-delay: 0.2s;
+	}
+	.delay-2 {
+		animation-delay: 0.4s;
+	}
+	.delay-3 {
+		animation-delay: 0.6s;
+	}
+
+	@media (max-width: 900px) {
+		.author-section,
+		.author-section.photo-left,
+		.author-section.photo-right {
+			flex-direction: column !important;
+			text-align: center;
+		}
+
+		.author-photo {
+			flex: 0 0 auto;
+			max-width: 100%;
+			width: 100%;
+		}
+
+		.author-content h2 {
+			font-size: 1.75rem;
+		}
 	}
 </style>

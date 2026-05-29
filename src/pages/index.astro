@@ -1,85 +1,90 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import SanityImage from "../components/SanityImage.astro";
 import RichText from "../components/RichText.astro";
 import GalleryGrid from "../components/GalleryGrid.astro";
-import { getSiteSettings, getChapterSections } from "../lib/sanity/queries";
+import { getSiteSettings, getHomepagePanels, POWER_COVER_PATH, POWER_GALLERY_SLUG } from "../lib/sanity/queries";
 import { urlFor } from "../lib/sanity/image";
 
 const FEATURED_CHAPTER_SLUG = "you-know-what-you-have-to-do";
+const DEFAULT_BOOK_LINK = "https://amzn.eu/d/2I2Drl2";
 
-const [settings, sections] = await Promise.all([
+const [settings, panels] = await Promise.all([
 	getSiteSettings(),
-	getChapterSections(FEATURED_CHAPTER_SLUG),
+	getHomepagePanels(FEATURED_CHAPTER_SLUG),
 ]);
 
-const featuredSections = sections.slice(0, 4);
+const bookLink = settings?.bookLink ?? DEFAULT_BOOK_LINK;
+const heroTitle = settings?.heroHeading ?? settings?.title ?? "A State of Becoming";
 
-const heroHeading = settings?.heroHeading ?? "A State of Becoming";
-const heroImages = settings?.heroImages ?? [];
-
-const coverFor = (section: (typeof featuredSections)[number]) =>
-	section.featuredImage?.asset
-		? urlFor(section.featuredImage).width(1000).auto("format").url()
-		: null;
+const coverFor = (section: (typeof panels)[number]) => {
+	if (section.slug === POWER_GALLERY_SLUG) return POWER_COVER_PATH;
+	if (section.featuredImage?.asset) {
+		return urlFor(section.featuredImage).width(1000).auto("format").url();
+	}
+	return null;
+};
 ---
 
-<BaseLayout title={settings?.title ?? "A State of Becoming"} wide={true}>
-	<section class="hero">
-		<div class="enso" aria-hidden="true"></div>
-		<div class="hero-inner">
-			<div class="hero-text">
-				<h1>{heroHeading}</h1>
-				{settings?.heroText && <RichText value={settings.heroText} />}
-				<a class="hero-cta" href="/chapters">Explore the chapters</a>
-			</div>
-			{heroImages.length > 0 && (
-				<div class="hero-photos">
-					{heroImages.slice(0, 2).map((img) => (
-						<figure class="photo-container">
-							<SanityImage image={img} width={640} alt={img.alt ?? ""} loading="eager" />
-							{img.caption && <figcaption>{img.caption}</figcaption>}
-						</figure>
-					))}
-				</div>
-			)}
+<BaseLayout title={settings?.title ?? "A State of Becoming"} wide={true} homepage={true}>
+	<div slot="homepage-bg" class="homepage-bg" aria-hidden="true">
+		<div class="homepage-bg-parallax">
+			<img
+				class="homepage-bg-image"
+				src="/background.png"
+				alt=""
+				width={1920}
+				height={1000}
+				fetchpriority="high"
+			/>
 		</div>
+		<div class="homepage-bg-fade"></div>
+		<div class="homepage-bg-wash"></div>
+	</div>
+
+	<section class="homepage-hero-title" aria-label="Site title">
+		<h1>{heroTitle}</h1>
 	</section>
 
 	<section class="power-section">
-		<div class="power-enso" aria-hidden="true"></div>
+		<div class="power-enso" aria-hidden="true">
+			<img src="/enso-circle.png" alt="" width={500} height={500} />
+		</div>
 		<div class="power-inner">
 			<h2 class="power-chapter">You know what you have to do</h2>
 			<h3 class="power-heading">What is your power?</h3>
 			<p class="power-prose">
-				Where does it sit, your power?<br />
-				Where do you find the will each day to face the world?<br />
-				Search for your power &mdash; only you know where it is.
+				<span class="line-wrap line-wrap--1">
+					<span class="reveal-line">Where does it sit, your power?</span>
+				</span><br />
+				<span class="line-wrap line-wrap--2">
+					<span class="reveal-line">Where do you find the will each day to face the world?</span>
+				</span><br />
+				<span class="line-wrap line-wrap--3">
+					<span class="reveal-line">Search for your power &mdash; only you know where it is.</span>
+				</span>
 			</p>
 
-			{featuredSections.length > 0 && (
+			{panels.length > 0 && (
 				<div class="chapter-panels" role="region" aria-label="Open each section to read more">
-					{featuredSections.map((section, index) => {
+					{panels.map((section) => {
 						const cover = coverFor(section);
 						const hasGallery = (section.gallery?.items?.length ?? 0) > 0;
 						return (
-							<details class="chapter-panel" open={index === 0}>
-								<summary
-									style={cover ? `--chapter-bg: url('${cover}')` : undefined}
-								>
+							<details class="chapter-panel">
+								<summary style={cover ? `--chapter-bg: url('${cover}')` : undefined}>
 									<span class="chapter-panel-title">{section.title}</span>
 								</summary>
 								<div class="chapter-panel-body">
 									{hasGallery ? (
-										<>
-											<h4 class="panel-gallery-title">Creative responses</h4>
+										<div class="panel-gallery">
+											<h3 class="panel-gallery-title">Creative responses</h3>
 											<p class="panel-gallery-hint">Click on any image to explore the full story.</p>
 											<GalleryGrid
 												items={section.gallery!.items}
 												columns={section.gallery!.columns ?? 3}
 												id={`gallery-home-${section.slug}`}
 											/>
-										</>
+										</div>
 									) : (
 										<>
 											{section.reflection && section.reflection.length > 0 && (
@@ -103,143 +108,181 @@ const coverFor = (section: (typeof featuredSections)[number]) =>
 				</div>
 			)}
 
-			{featuredSections.length === 0 && (
+			{panels.length === 0 && (
 				<p class="empty">
 					Content has not been added yet. Visit the <a href="/studio">Studio</a> to begin.
 				</p>
 			)}
 		</div>
 	</section>
+
+	<section class="cta-section">
+		<h3>Have your own creative response?</h3>
+		<p>
+			We'd love to see it! <a href="/contact/">Share your interpretation</a> of
+			<strong> "What is your power?"</strong>
+		</p>
+	</section>
+
+	<section class="footer-hero">
+		<div class="footer-hero-text">
+			<h3>
+				The book, <a href={bookLink} target="_blank" rel="noopener noreferrer"><em>A State of Becoming</em></a>, by Dinos Aristidou and Neil Farrelly was published in 2023.
+			</h3>
+			<h3>It is now in the process of becoming something more.</h3>
+			<h3>My vision is to creatively involve everyone who has been a part of our lives.</h3>
+			<h3>
+				<a href={`/chapters/${FEATURED_CHAPTER_SLUG}/`}>Join us.</a>
+			</h3>
+			<a class="book-cta" href={bookLink} target="_blank" rel="noopener noreferrer">Buy the book</a>
+		</div>
+		<div class="footer-hero-photos">
+			<figure class="photo-container">
+				<img
+					src="/homepage-1.jpeg"
+					alt="Dinos and Neil"
+					class="footer-photo"
+					width={640}
+					height={480}
+					loading="lazy"
+				/>
+				<figcaption>Dinos and Neil</figcaption>
+			</figure>
+			<figure class="photo-container">
+				<img
+					src="/homepage-2.jpeg"
+					alt="Uly & Zani with Dinos"
+					class="footer-photo"
+					width={640}
+					height={480}
+					loading="lazy"
+				/>
+				<figcaption>Uly &amp; Zani with Dinos</figcaption>
+			</figure>
+		</div>
+	</section>
 </BaseLayout>
 
 <style>
-	@keyframes heroRise {
-		0% { opacity: 0; transform: translateX(-40px); filter: blur(6px); }
-		100% { opacity: 1; transform: translateX(0); filter: blur(0); }
-	}
-	@keyframes heroPhotoIn {
-		0% { opacity: 0; transform: translateX(50px) scale(0.96); filter: blur(8px); }
-		100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
-	}
-
-	.hero {
-		position: relative;
-		padding: 3rem 0 4rem;
+	.homepage-bg {
+		position: fixed;
+		inset: 0 0 auto;
+		z-index: 0;
+		height: 1000px;
 		overflow: hidden;
+		pointer-events: none;
 	}
-	.enso {
+	.homepage-bg-parallax {
 		position: absolute;
 		inset: 0;
-		background: url("/enso-circle.png") center/min(500px, 80vw) no-repeat;
-		opacity: 0.12;
-		pointer-events: none;
-		-webkit-mask-image: radial-gradient(ellipse at center, black 35%, transparent 65%);
-		mask-image: radial-gradient(ellipse at center, black 35%, transparent 65%);
 	}
-	.hero-inner {
-		position: relative;
-		display: grid;
-		grid-template-columns: 3fr 1.15fr;
-		gap: 2.5rem;
-		align-items: center;
-	}
-	.hero-text h1 {
-		font-size: clamp(2.2rem, 5vw, 3.2rem);
-		letter-spacing: 0.02em;
-		margin-bottom: 1.25rem;
-		animation: heroRise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-	}
-	.hero-text :global(.rich-text) {
-		font-size: 1.2rem;
-		color: rgb(var(--color-neutral-700));
-		animation: heroRise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-		animation-delay: 0.15s;
-	}
-	.hero-cta {
-		display: inline-block;
-		margin-top: 1.5rem;
-		padding: 0.8em 1.6em;
-		background: rgb(var(--color-primary-600));
-		color: #fff;
-		border-radius: 8px;
-		font-weight: 600;
-		text-decoration: none;
-		animation: heroRise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-		animation-delay: 0.4s;
-	}
-	.hero-cta:hover {
-		background: rgb(var(--color-primary-700));
-		text-decoration: none;
-	}
-	.hero-photos {
-		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
-	}
-	.photo-container {
-		margin: 0;
-		animation: heroPhotoIn 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-		animation-delay: 0.3s;
-	}
-	.photo-container :global(img) {
+	.homepage-bg-image {
+		display: block;
 		width: 100%;
-		border-radius: 12px;
-		box-shadow: 0 16px 32px rgba(var(--color-neutral-900), 0.14);
+		/* Extra height so upward parallax does not expose empty space */
+		height: calc(1000px + 18rem);
+		object-fit: cover;
+		object-position: center top;
+		transform: scale(0.97);
+		transform-origin: center top;
+		margin: 0;
 	}
-	.photo-container figcaption {
-		font-size: 0.85rem;
-		color: rgb(var(--color-neutral-500));
-		margin-top: 0.5rem;
+	.homepage-bg-fade {
+		position: absolute;
+		inset: 0;
+		height: 1000px;
+		background: linear-gradient(
+			to top,
+			rgb(var(--color-neutral-50)) 0%,
+			rgba(255, 255, 255, 0.55) 45%,
+			rgba(255, 255, 255, 0.25) 100%
+		);
+	}
+	.homepage-bg-wash {
+		position: absolute;
+		inset: 0;
+		height: 1000px;
+		background: rgba(255, 255, 255, 0.22);
+	}
+
+	.homepage-hero-title {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		/* Aligns with the painted sun disc in background.png */
+		min-height: clamp(300px, 46vw, 500px);
+		padding: 1.5rem 2rem 0.5rem;
 		text-align: center;
+	}
+	.homepage-hero-title h1 {
+		margin: 0;
+		font-size: clamp(2.75rem, 5vw, 3.5rem);
+		font-weight: 800;
+		line-height: 1.15;
+		color: rgb(var(--color-neutral-800));
+		text-shadow:
+			0 1px 12px rgba(255, 255, 255, 0.9),
+			0 0 32px rgba(255, 255, 255, 0.65);
 	}
 
 	.power-section {
 		position: relative;
-		margin-top: 4rem;
-		padding: 3rem 0;
+		padding: 2rem 2rem 3rem;
 		text-align: center;
 		overflow: hidden;
 	}
 	.power-enso {
 		position: absolute;
 		inset: 0;
-		background: url("/enso-circle.png") center/min(500px, 80vw) no-repeat;
-		opacity: 0.12;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		pointer-events: none;
+	}
+	.power-enso img {
+		width: min(500px, 80vw);
+		height: auto;
+		opacity: 0.15;
+		user-select: none;
 		-webkit-mask-image: radial-gradient(ellipse at center, black 35%, transparent 65%);
 		mask-image: radial-gradient(ellipse at center, black 35%, transparent 65%);
 	}
 	.power-inner {
 		position: relative;
 		z-index: 1;
+		max-width: 72rem;
+		margin: 0 auto;
+		padding: 0 2rem;
 	}
 	.power-chapter {
-		font-size: clamp(1.6rem, 4vw, 2.1rem);
+		font-size: 2.1rem;
 		font-weight: 800;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		margin-bottom: 0.75rem;
+		margin: 0 0 1.5rem;
+		text-shadow: 0 2px 12px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5);
 	}
 	.power-heading {
-		font-size: clamp(1.4rem, 3vw, 2rem);
+		font-size: 2rem;
 		font-weight: 700;
-		margin: 0 0 1rem;
+		margin: 0 0 1.5rem;
+		text-shadow: 0 2px 12px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5);
 	}
 	.power-prose {
-		font-size: clamp(1.3rem, 3vw, 1.75rem);
+		font-size: 1.75rem;
 		font-weight: 600;
 		line-height: 1.7;
+		letter-spacing: 0.005em;
 		max-width: 48rem;
-		margin: 1rem auto 0.5rem;
+		margin: 0 auto 0.5rem;
 		color: rgb(var(--color-neutral-800));
+		text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9), 0 0 30px rgba(255, 255, 255, 0.4);
 	}
 
 	.chapter-panels {
 		margin-top: 2.75rem;
-		max-width: 72rem;
-		width: 100%;
-		margin-left: auto;
-		margin-right: auto;
 		text-align: left;
 		display: flex;
 		flex-direction: column;
@@ -247,7 +290,6 @@ const coverFor = (section: (typeof featuredSections)[number]) =>
 	}
 	.chapter-panel {
 		--chapter-bg: none;
-		position: relative;
 		border-radius: 1rem;
 		overflow: hidden;
 		box-shadow: 0 12px 40px rgba(var(--color-neutral-900), 0.1);
@@ -256,16 +298,24 @@ const coverFor = (section: (typeof featuredSections)[number]) =>
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 0.65rem;
+		justify-content: center;
 		list-style: none;
 		min-height: 8.75rem;
 		padding: 1.35rem 1.5rem;
 		cursor: pointer;
 		user-select: none;
-		background-image: var(--chapter-bg);
+		-webkit-tap-highlight-color: transparent;
+		background-color: #1a1a1a;
+		background-image:
+			linear-gradient(
+				105deg,
+				rgba(0, 0, 0, 0.6) 0%,
+				rgba(0, 0, 0, 0.32) 55%,
+				rgba(0, 0, 0, 0.5) 100%
+			),
+			var(--chapter-bg);
 		background-size: cover;
 		background-position: center;
-		background-color: #1a1a1a;
 	}
 	@media (min-width: 768px) {
 		.chapter-panel > summary {
@@ -276,9 +326,35 @@ const coverFor = (section: (typeof featuredSections)[number]) =>
 		content: "";
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(105deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.32) 55%, rgba(0, 0, 0, 0.5) 100%);
 		z-index: 0;
 		pointer-events: none;
+		background: linear-gradient(
+			105deg,
+			rgba(255, 255, 255, 0.88) 0%,
+			rgba(255, 255, 255, 0.72) 55%,
+			rgba(255, 255, 255, 0.82) 100%
+		);
+		opacity: 0;
+		transition: opacity 0.35s ease;
+	}
+	.chapter-panel > summary:hover::after,
+	.chapter-panel > summary:active::after,
+	.chapter-panel > summary:focus-visible::after {
+		opacity: 1;
+	}
+	.chapter-panel[open] > summary {
+		background-image: var(--chapter-bg);
+	}
+	.chapter-panel[open] > summary::after {
+		opacity: 1;
+	}
+	.chapter-panel[open] > summary .chapter-panel-title {
+		color: rgb(var(--color-neutral-900));
+		text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+	}
+	.chapter-panel[open] > summary::before {
+		border-color: rgb(var(--color-neutral-700));
+		filter: none;
 	}
 	.chapter-panel-title,
 	.chapter-panel > summary::before {
@@ -287,38 +363,58 @@ const coverFor = (section: (typeof featuredSections)[number]) =>
 	}
 	.chapter-panel-title {
 		display: block;
-		flex: 1;
-		font-size: clamp(1.5rem, 3vw, 2rem);
+		flex: 0 1 auto;
+		max-width: calc(100% - 4rem);
+		font-size: 2rem;
 		font-weight: 700;
 		line-height: 1.2;
 		letter-spacing: 0.02em;
-		text-shadow: 0 2px 14px rgba(255, 255, 255, 0.45), 0 2px 32px rgba(0, 0, 0, 0.55);
+		text-align: center;
 		color: #fff;
+		text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45), 0 2px 32px rgba(0, 0, 0, 0.55);
+		transition: color 0.35s ease, text-shadow 0.35s ease;
+	}
+	.chapter-panel > summary:hover .chapter-panel-title,
+	.chapter-panel > summary:active .chapter-panel-title,
+	.chapter-panel > summary:focus-visible .chapter-panel-title {
+		color: rgb(var(--color-neutral-900));
+		text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
 	}
 	.chapter-panel > summary::-webkit-details-marker { display: none; }
 	.chapter-panel > summary::before {
 		content: "";
+		position: absolute;
+		left: 1.5rem;
+		top: 50%;
 		flex: 0 0 auto;
 		width: 0.4em;
 		height: 0.4em;
 		border-right: 2.5px solid rgba(255, 255, 255, 0.95);
 		border-bottom: 2.5px solid rgba(255, 255, 255, 0.95);
-		transform: rotate(-45deg);
-		transition: transform 0.2s ease;
+		transform: translateY(-50%) rotate(-45deg);
+		transition: border-color 0.35s ease, transform 0.2s ease, filter 0.35s ease;
 		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 	}
-	.chapter-panel[open] > summary::before {
-		transform: rotate(45deg) translate(0, -0.1em);
+	.chapter-panel > summary:hover::before,
+	.chapter-panel > summary:active::before,
+	.chapter-panel > summary:focus-visible::before {
+		border-color: rgb(var(--color-neutral-700));
+		filter: none;
 	}
-	.chapter-panel[open] > summary::after {
-		background: linear-gradient(105deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%);
+	.chapter-panel[open] > summary::before {
+		transform: translateY(-50%) rotate(45deg) translate(0, -0.1em);
 	}
 	.chapter-panel-body {
 		padding: 1.5rem 1.75rem 1.75rem;
-		font-size: 1rem;
+		font-size: 0.98rem;
 		line-height: 1.7;
 		background: rgb(var(--color-neutral));
 		text-align: left;
+	}
+	.chapter-panel-body:has(.panel-gallery) {
+		background: rgba(var(--color-neutral-100), 0.88);
+		backdrop-filter: blur(24px) saturate(1.35);
+		-webkit-backdrop-filter: blur(24px) saturate(1.35);
 	}
 	.panel-gallery-title {
 		text-align: center;
@@ -349,12 +445,114 @@ const coverFor = (section: (typeof featuredSections)[number]) =>
 		color: rgb(var(--color-neutral-500));
 	}
 
-	@media (max-width: 720px) {
-		.hero-inner {
-			grid-template-columns: 1fr;
+	.cta-section {
+		text-align: center;
+		margin: 4rem auto 0;
+		max-width: 40rem;
+		padding: 0 2rem;
+	}
+	.cta-section h3 {
+		font-size: 1.25rem;
+		margin-bottom: 0.75rem;
+	}
+	.cta-section p {
+		font-size: 1rem;
+		color: rgb(var(--color-neutral-700));
+	}
+
+	.footer-hero {
+		display: grid;
+		grid-template-columns: 3fr 1.15fr;
+		gap: 2.5rem;
+		align-items: center;
+		max-width: 72rem;
+		margin: 2.5rem auto 0.5rem;
+		padding: 0 2rem 3rem;
+	}
+	.footer-hero-text {
+		text-align: center;
+	}
+	.footer-hero-text h3 {
+		font-size: 1.25rem;
+		font-weight: 600;
+		line-height: 1.55;
+		margin: 0 0 0.85rem;
+	}
+	.book-cta {
+		display: inline-block;
+		margin-top: 0.5rem;
+		padding: 0.5rem 1.5rem;
+		border: 1px solid rgb(var(--color-neutral-700));
+		border-radius: 0.375rem;
+		color: inherit;
+		text-decoration: none;
+		font-size: 0.95rem;
+		opacity: 0.85;
+		transition: opacity 0.2s ease;
+	}
+	.book-cta:hover {
+		opacity: 1;
+		text-decoration: none;
+	}
+	.footer-hero-photos {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+	.photo-container {
+		margin: 0;
+		text-align: center;
+	}
+	.footer-photo {
+		width: 100%;
+		border-radius: 0.75rem;
+		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	}
+	.photo-container figcaption {
+		margin: 0.35rem 0 0;
+		font-style: italic;
+		color: rgb(var(--color-neutral-500));
+		font-size: 0.9rem;
+	}
+
+	@media (max-width: 640px) {
+		.power-prose {
+			font-size: 1.4rem;
 		}
-		.hero-photos {
+		.chapter-panel-title {
+			font-size: 1.5rem;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.footer-hero {
+			grid-template-columns: 1fr;
+			gap: 2rem;
+		}
+		.footer-hero-photos {
 			flex-direction: row;
+			gap: 1rem;
 		}
 	}
 </style>
+
+<script>
+	import { initGalleries, relayoutVisibleGalleries } from "../scripts/gallery";
+
+	function setupPanelToggles() {
+		document.querySelectorAll<HTMLDetailsElement>(".chapter-panel").forEach((panel) => {
+			panel.addEventListener("toggle", () => {
+				if (panel.open) {
+					window.requestAnimationFrame(() => relayoutVisibleGalleries());
+				}
+			});
+		});
+	}
+
+	initGalleries();
+	setupPanelToggles();
+	document.addEventListener("astro:page-load", () => {
+		initGalleries();
+		setupPanelToggles();
+	});
+</script>

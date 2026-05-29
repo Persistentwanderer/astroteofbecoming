@@ -4,42 +4,38 @@ const today = new Date();
 ---
 
 <footer>
-	<p class="footer-title">{SITE_TITLE}</p>
-	<p class="footer-meta">
-		&copy; {today.getFullYear()} Dinos Aristidou &amp; Neil Farrelly. All rights reserved.
-	</p>
-	<nav class="footer-links">
-		<a href="/chapters">Chapters</a>
-		<a href="/about">About</a>
-		<a href="/contact">Contact</a>
-	</nav>
+	<div class="footer-bar">
+		<p class="footer-meta">
+			&copy; {today.getFullYear()} {SITE_TITLE}
+		</p>
+		<p class="footer-credit">Website by Alfie Zanini</p>
+	</div>
 </footer>
 
 <style>
 	footer {
 		flex-shrink: 0;
-		padding: 3em 1em 4em;
+		padding: 2.5em 1.5em 3em;
 		background: rgb(var(--color-neutral-100));
 		border-top: 1px solid rgb(var(--color-neutral-200));
 		color: rgb(var(--color-neutral-600));
-		text-align: center;
 	}
-	.footer-title {
-		font-weight: 700;
-		color: rgb(var(--color-neutral-800));
-		margin-bottom: 0.25em;
-	}
-	.footer-meta {
-		font-size: 0.9rem;
-		margin-bottom: 1em;
-	}
-	.footer-links {
+	.footer-bar {
 		display: flex;
-		justify-content: center;
-		gap: 1.5em;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem 1.5rem;
+		max-width: var(--wide-width);
+		margin: 0 auto;
 	}
-	.footer-links a {
-		color: rgb(var(--color-neutral-600));
-		font-size: 0.95rem;
+	.footer-meta,
+	.footer-credit {
+		font-size: 0.9rem;
+		margin: 0;
+	}
+	.footer-credit {
+		font-size: 0.85rem;
+		color: rgb(var(--color-neutral-500));
 	}
 </style>

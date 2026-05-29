@@ -60,8 +60,72 @@ function layoutMasonry(grid: HTMLElement): void {
 	grid.style.height = `${Math.ceil(Math.max(...columnHeights))}px`;
 }
 
+/** Re-run masonry for galleries inside open panels (e.g. after a <details> expands). */
+export function relayoutVisibleGalleries(): void {
+	document
+		.querySelectorAll<HTMLElement>(".gallery-grid-container")
+		.forEach((container) => {
+			const panel = container.closest("details");
+			if (panel && !panel.open) return;
+			const grid = container.querySelector<HTMLElement>(".gallery-grid");
+			if (grid && grid.offsetWidth > 0) layoutMasonry(grid);
+		});
+}
+
 const PLAY_LABEL = "Listen";
 const PAUSE_LABEL = "Pause";
+
+const prefetchedUrls = new Set<string>();
+
+function prefetchUrl(url: string): void {
+	if (!url || prefetchedUrls.has(url)) return;
+	prefetchedUrls.add(url);
+	const link = document.createElement("link");
+	link.rel = "prefetch";
+	link.as = url.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) ? "video" : "image";
+	link.href = url;
+	document.head.appendChild(link);
+}
+
+function setLightboxImage(
+	img: HTMLImageElement,
+	thumb: string,
+	full: string,
+	alt: string,
+): void {
+	img.alt = alt;
+	img.classList.remove("is-upgrading");
+
+	if (!thumb && !full) {
+		img.removeAttribute("src");
+		return;
+	}
+
+	const target = full || thumb;
+	if (!full || full === thumb) {
+		img.src = target;
+		return;
+	}
+
+	// Show the grid thumb immediately (usually cached), then swap to full res.
+	img.src = thumb;
+	img.classList.add("is-upgrading");
+
+	const loader = new Image();
+	loader.onload = () => {
+		if (img.dataset.loadingFull !== full) return;
+		img.src = full;
+		img.classList.remove("is-upgrading");
+		img.removeAttribute("data-loading-full");
+	};
+	loader.onerror = () => {
+		if (img.dataset.loadingFull !== full) return;
+		img.classList.remove("is-upgrading");
+		img.removeAttribute("data-loading-full");
+	};
+	img.dataset.loadingFull = full;
+	loader.src = full;
+}
 
 function initContainer(container: HTMLElement): void {
 	if (container.dataset.galleryReady === "true") return;
@@ -148,6 +212,7 @@ function initContainer(container: HTMLElement): void {
 	let currentIndex = 0;
 	let isPlaying = false;
 	let storyExpanded = false;
+	let videoLoadToken = 0;
 
 	function update(): void {
 		const item = items[currentIndex];
@@ -168,18 +233,40 @@ function initContainer(container: HTMLElement): void {
 		storyExpanded = false;
 
 		// Show an inline video player when present, otherwise the image.
+		const thumb = d.thumb || "";
+		const full = d.full || thumb;
+
 		if (video) {
+			const loadToken = ++videoLoadToken;
+			lightboxVideo.classList.remove("is-ready");
+			lightboxVideo.poster = thumb || full;
 			lightboxVideo.src = video;
-			lightboxVideo.poster = d.full || d.src || "";
-			lightboxVideo.style.display = "block";
-			lightboxImage.style.display = "none";
+			lightboxVideo.style.display = "none";
+			lightboxImage.style.display = "block";
+			lightboxImage.src = thumb || full;
+			lightboxImage.alt = title;
+			lightboxImage.classList.remove("is-upgrading");
+			lightboxImage.removeAttribute("data-loading-full");
+			lightboxVideo.load();
+			lightboxVideo.addEventListener(
+				"loadeddata",
+				() => {
+					if (loadToken !== videoLoadToken) return;
+					lightboxVideo.style.display = "block";
+					lightboxImage.style.display = "none";
+					lightboxVideo.classList.add("is-ready");
+				},
+				{ once: true },
+			);
 		} else {
+			videoLoadToken++;
 			lightboxVideo.removeAttribute("src");
+			lightboxVideo.removeAttribute("poster");
+			lightboxVideo.classList.remove("is-ready");
 			lightboxVideo.load();
 			lightboxVideo.style.display = "none";
 			lightboxImage.style.display = "block";
-			lightboxImage.src = d.src || "";
-			lightboxImage.alt = title;
+			setLightboxImage(lightboxImage, thumb, full, title);
 		}
 
 		titleEl.textContent = title;
@@ -271,20 +358,29 @@ function initContainer(container: HTMLElement): void {
 		update();
 	}
 
-	items.forEach((item, index) =>
-		item.addEventListener("click", () => open(index)),
-	);
+	items.forEach((item, index) => {
+		item.addEventListener("click", () => open(index));
+		item.addEventListener(
+			"mouseenter",
+			() => {
+				const d = item.dataset;
+				prefetchUrl(d.full || d.thumb || "");
+				if (d.video) prefetchUrl(d.video);
+			},
+			{ once: true },
+		);
+	});
 	closeBtn?.addEventListener("click", (e) => {
 		e.stopPropagation();
 		close();
 	});
 	prevBtn?.addEventListener("click", (e) => {
 		e.stopPropagation();
-		showPrev();
+		close();
 	});
 	nextBtn?.addEventListener("click", (e) => {
 		e.stopPropagation();
-		showNext();
+		close();
 	});
 
 	storyBtn.addEventListener("click", (e) => {

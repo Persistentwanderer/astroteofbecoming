@@ -10,5 +10,9 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	"vars": {
+		"PUBLIC_SANITY_PROJECT_ID": "s3iiyuuu",
+		"PUBLIC_SANITY_DATASET": "production"
+	}
 }

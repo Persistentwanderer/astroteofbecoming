@@ -44,21 +44,9 @@
 
 	--content-width: 46rem;
 	--wide-width: 72rem;
-}
-
-@font-face {
-	font-family: "Atkinson";
-	src: url("/fonts/atkinson-regular.woff") format("woff");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-@font-face {
-	font-family: "Atkinson";
-	src: url("/fonts/atkinson-bold.woff") format("woff");
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
+	--font-sans:
+		ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+		"Segoe UI Symbol", "Noto Color Emoji";
 }
 
 *,
@@ -67,14 +55,19 @@
 	box-sizing: border-box;
 }
 
+html {
+	overscroll-behavior-y: none;
+}
+
 body {
-	font-family: "Atkinson", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	font-family: var(--font-sans);
 	margin: 0;
 	padding: 0;
+	padding-top: var(--site-header-height, 6.25rem);
 	text-align: left;
 	background: rgb(var(--color-neutral-50));
 	color: rgb(var(--color-neutral-800));
-	font-size: 20px;
+	font-size: 1rem;
 	line-height: 1.7;
 	word-wrap: break-word;
 	overflow-wrap: break-word;
@@ -95,6 +88,12 @@ main.wide {
 	width: var(--wide-width);
 }
 
+main.homepage {
+	position: relative;
+	padding-top: 0.5rem;
+	padding-bottom: 1.5rem;
+}
+
 h1,
 h2,
 h3,
@@ -107,16 +106,18 @@ h6 {
 	font-weight: 700;
 }
 h1 {
-	font-size: 2.75rem;
+	font-size: 2.25rem;
+	font-weight: 800;
 }
 h2 {
-	font-size: 2rem;
+	font-size: 1.5rem;
 }
 h3 {
-	font-size: 1.6rem;
+	font-size: 1.25rem;
+	font-weight: 600;
 }
 h4 {
-	font-size: 1.3rem;
+	font-size: 1.125rem;
 }
 
 a {
@@ -164,13 +165,7 @@ hr {
 }
 
 @media (max-width: 720px) {
-	body {
-		font-size: 18px;
-	}
 	main {
 		padding: 1.5em 1em;
-	}
-	h1 {
-		font-size: 2.1rem;
 	}
 }

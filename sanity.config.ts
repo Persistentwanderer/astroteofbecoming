@@ -2,9 +2,11 @@ import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
 import { schemaTypes } from "./src/sanity/schemaTypes";
+import { resolveSanityEnv } from "./sanity.project.mjs";
 
-const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID as string;
-const dataset = (import.meta.env.PUBLIC_SANITY_DATASET as string) ?? "production";
+// Studio runs in the browser; env is baked in at build time. Cloudflare Builds
+// may set PUBLIC_SANITY_* to empty strings, so fall back to committed defaults.
+const { projectId, dataset } = resolveSanityEnv(import.meta.env);
 
 // Custom desk structure: siteSettings is a singleton, everything else is a list.
 const structure = (S: any) =>
@@ -26,6 +28,7 @@ const structure = (S: any) =>
 			S.divider(),
 			S.documentTypeListItem("contributor").title("Contributors"),
 			S.documentTypeListItem("page").title("Pages"),
+			S.documentTypeListItem("contactSubmission").title("Contact submissions"),
 		]);
 
 export default defineConfig({

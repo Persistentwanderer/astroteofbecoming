@@ -101,9 +101,17 @@ function slugify(str) {
 const failures = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Authoritative chapter order (from the old menus.en.toml). The per-file
-// `weight` front matter is unreliable (some chapters have none, and
-// "what-happens-next" is mis-weighted), so order by slug instead.
+function formatChapterTitle(title) {
+	const trimmed = title.trim();
+	if (!trimmed) return trimmed;
+	const letters = trimmed.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, "");
+	if (letters.length > 0 && letters === letters.toUpperCase()) {
+		return trimmed.charAt(0) + trimmed.slice(1).toLowerCase();
+	}
+	return trimmed;
+}
+
+// Keep in sync with src/lib/chapterOrder.ts
 const CHAPTER_ORDER = {
 	"you-know-what-you-have-to-do": 1,
 	"what-can-you-change": 2,
@@ -251,7 +259,7 @@ async function migrateChapters() {
 				client.createOrReplace({
 					_id: chapterId,
 					_type: "chapter",
-					title: data.title || chapterSlug,
+					title: formatChapterTitle(data.title || chapterSlug),
 					slug: { _type: "slug", current: chapterSlug },
 					order: CHAPTER_ORDER[chapterSlug] ?? Number(data.weight) ?? 0,
 					featuredImage: featured ? await uploadImage(featured) : undefined,

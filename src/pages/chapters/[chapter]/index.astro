@@ -2,10 +2,20 @@
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import SanityImage from "../../../components/SanityImage.astro";
 import RichText from "../../../components/RichText.astro";
-import { getChapterBySlug } from "../../../lib/sanity/queries";
+import {
+	getChapterBySlug,
+	getChapterSectionsWithPower,
+	POWER_COVER_PATH,
+	POWER_GALLERY_SLUG,
+} from "../../../lib/sanity/queries";
 
 const { chapter: chapterSlug } = Astro.params;
-const chapter = chapterSlug ? await getChapterBySlug(chapterSlug) : null;
+const [chapter, sections] = chapterSlug
+	? await Promise.all([
+			getChapterBySlug(chapterSlug),
+			getChapterSectionsWithPower(chapterSlug),
+		])
+	: [null, []];
 
 if (!chapter) {
 	return new Response(null, { status: 404, statusText: "Chapter not found" });
@@ -25,12 +35,18 @@ if (!chapter) {
 	</header>
 
 	<div class="section-list">
-		{chapter.sections?.map((section) => (
+		{sections.map((section) => (
 			<a class="section-card" href={`/chapters/${chapter.slug}/${section.slug}`}>
-				{section.featuredImage && (
+				{section.slug === POWER_GALLERY_SLUG ? (
 					<div class="section-card-image">
-						<SanityImage image={section.featuredImage} width={500} height={500} alt={section.title} />
+						<img src={POWER_COVER_PATH} alt={section.title} width={500} height={500} loading="lazy" />
 					</div>
+				) : (
+					section.featuredImage && (
+						<div class="section-card-image">
+							<SanityImage image={section.featuredImage} width={500} height={500} alt={section.title} />
+						</div>
+					)
 				)}
 				<div class="section-card-body">
 					<h2>{section.title}</h2>
@@ -42,7 +58,7 @@ if (!chapter) {
 		))}
 	</div>
 
-	{(!chapter.sections || chapter.sections.length === 0) && (
+	{sections.length === 0 && (
 		<p class="empty">No sections in this chapter yet.</p>
 	)}
 </BaseLayout>
@@ -98,7 +114,8 @@ if (!chapter) {
 		aspect-ratio: 1 / 1;
 		overflow: hidden;
 	}
-	.section-card-image :global(img) {
+	.section-card-image :global(img),
+	.section-card-image img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

@@ -6,6 +6,7 @@ import { galleryItem } from "./galleryItem";
 import { contributor } from "./contributor";
 import { page } from "./page";
 import { siteSettings } from "./siteSettings";
+import { contactSubmission } from "./contactSubmission";
 
 export const schemaTypes = [
 	// Documents
@@ -16,6 +17,7 @@ export const schemaTypes = [
 	galleryItem,
 	contributor,
 	page,
+	contactSubmission,
 	// Objects
 	blockContent,
 ];

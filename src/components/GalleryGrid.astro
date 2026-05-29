@@ -11,14 +11,14 @@ interface Props {
 
 const { items, columns = 3, id = "gallery-grid" } = Astro.props;
 
-// Prepare flat, serialisable item data for the client lightbox.
+// Grid thumbs stay small; lightbox loads a larger image in the background.
 const prepared = items.map((item) => {
-	const src = item.image?.asset
-		? urlFor(item.image).width(900).auto("format").url()
+	const thumb = item.image?.asset
+		? urlFor(item.image).width(600).auto("format").url()
 		: "";
 	const full = item.image?.asset
-		? urlFor(item.image).width(1800).auto("format").url()
-		: src;
+		? urlFor(item.image).width(1400).auto("format").url()
+		: thumb;
 	// Uploaded video file takes priority; fall back to an external URL.
 	const video = item.videoFileUrl ?? item.videoUrl ?? "";
 	// A self-hosted/direct file can play inline; YouTube/Vimeo open out.
@@ -26,7 +26,7 @@ const prepared = items.map((item) => {
 		!!item.videoFileUrl ||
 		(!!item.videoUrl && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(item.videoUrl));
 	return {
-		src,
+		thumb,
 		full,
 		title: item.title ?? "",
 		author: item.author ?? "",
@@ -46,7 +46,8 @@ const prepared = items.map((item) => {
 			<div
 				class="gallery-item"
 				data-index={index}
-				data-src={item.full}
+				data-thumb={item.thumb}
+				data-full={item.full}
 				data-title={item.title}
 				data-author={item.author}
 				data-description={item.description}
@@ -56,7 +57,7 @@ const prepared = items.map((item) => {
 				data-audio={item.audio}
 				data-title-style={item.titleStyle}
 			>
-				<img src={item.src} alt={item.title} loading="lazy" decoding="async" />
+				<img src={item.thumb} alt={item.title} loading="lazy" decoding="async" />
 				{item.video && <span class="gallery-item-play" aria-hidden="true"></span>}
 			</div>
 		))}
@@ -166,42 +167,42 @@ const prepared = items.map((item) => {
 	.gallery-lightbox.active {
 		display: block;
 	}
+	/*
+	  Two-row grid: a flexible media row that always contains the image/video,
+	  and an auto-sized caption row pinned to the bottom. Using a grid track
+	  (rather than flex sizing) makes the media area a hard-bounded box, so
+	  media can never clip out of it and the caption can never float away from
+	  the bottom regardless of aspect ratio or caption length.
+	*/
 	.gallery-lightbox-content {
 		position: absolute;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		overflow-y: auto;
-		overflow-x: hidden;
-		scrollbar-gutter: stable;
-		padding: max(15px, env(safe-area-inset-top, 0px)) 20px 20px;
+		/* Pin to the dynamic viewport height so the grid always matches the
+		   visible area (avoids the 100vh vs dvh mismatch on mobile that let
+		   centred media drift under the top controls). */
+		inset: 0 0 auto 0;
+		height: 100dvh;
+		display: grid;
+		grid-template-rows: minmax(0, 1fr) auto;
+		justify-items: center;
+		overflow: hidden;
+		/* Reserve top space so tall media never slides under the fixed
+		   close button (top: 20px, 50px tall) or the safe-area inset. */
+		padding: max(80px, calc(env(safe-area-inset-top, 0px) + 64px)) 20px 0;
 		box-sizing: border-box;
-	}
-	.gallery-lightbox-content.full-caption {
-		justify-content: flex-start;
 	}
 	.gallery-lightbox-image-wrapper {
+		grid-row: 1;
 		width: 100%;
-		max-width: 95vw;
-		margin-inline: auto;
+		height: 100%;
 		display: flex;
-		align-items: flex-end;
+		align-items: center;
 		justify-content: center;
 		min-height: 0;
-		padding: 0 10px;
+		min-width: 0;
+		overflow: hidden;
+		/* Bottom padding doubles as the gap above the caption. */
+		padding: 0 10px 12px;
 		box-sizing: border-box;
-	}
-	.gallery-lightbox-content.full-caption .gallery-lightbox-image-wrapper {
-		flex: 1 1 0;
-		align-items: center;
-	}
-	.gallery-lightbox-content.no-caption .gallery-lightbox-image-wrapper {
-		max-height: 92vh;
-	}
-	.gallery-lightbox-content.minimal-caption .gallery-lightbox-image-wrapper {
-		max-height: 82vh;
 	}
 	.gallery-lightbox-image {
 		max-width: 100%;
@@ -213,18 +214,23 @@ const prepared = items.map((item) => {
 		display: block;
 		border-radius: 6px;
 		box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+		transition: filter 0.2s ease;
 	}
+	.gallery-lightbox-image.is-upgrading {
+		filter: blur(0.5px);
+	}
+	/* Video fills the media track and is letterboxed via object-fit, so small
+	   or low-res clips scale up to fit instead of floating at intrinsic size. */
 	.gallery-lightbox-video {
-		max-width: 100%;
-		max-height: 82vh;
-		width: auto;
-		height: auto;
+		width: 100%;
+		height: 100%;
 		display: block;
 		border-radius: 6px;
-		background: #000;
-		box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+		background: transparent;
+		object-fit: contain;
 	}
 	.gallery-lightbox-caption {
+		grid-row: 2;
 		width: 100%;
 		max-width: 95vw;
 		margin-inline: auto;
@@ -233,16 +239,11 @@ const prepared = items.map((item) => {
 		box-sizing: border-box;
 		border-radius: 12px 12px 0 0;
 		box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
-		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
 		overflow-x: hidden;
 		overflow-y: auto;
 		overscroll-behavior: contain;
-	}
-	.gallery-lightbox-content.full-caption .gallery-lightbox-caption:not(.hidden) {
-		flex: 0 0 auto;
-		height: auto;
 	}
 	.gallery-lightbox-caption.hidden {
 		display: none !important;
@@ -254,7 +255,7 @@ const prepared = items.map((item) => {
 		padding: 20px 35px;
 	}
 	.gallery-lightbox-caption.full {
-		padding: 25px 10px;
+		padding: 25px 20px;
 		padding-bottom: calc(25px + env(safe-area-inset-bottom, 0px));
 	}
 	.gallery-lightbox-caption-inner {
@@ -262,6 +263,8 @@ const prepared = items.map((item) => {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
+		padding-inline: 15px;
+		box-sizing: border-box;
 	}
 	.gallery-lightbox-title {
 		margin: 0 0 8px 0;
@@ -271,15 +274,20 @@ const prepared = items.map((item) => {
 		text-decoration: underline;
 		text-decoration-thickness: 2px;
 		text-underline-offset: 4px;
+		line-height: 1.25;
 	}
 	.gallery-lightbox-title.wacky {
 		font-family: "Chalkduster", "Marker Felt", "Bradley Hand ITC", cursive, fantasy;
 		font-weight: 400;
 		font-style: italic;
-		letter-spacing: 0.06em;
+		letter-spacing: 0.04em;
+		line-height: 1.5;
+		margin-bottom: 1.25rem;
+		padding-bottom: 0.35em;
 		transform: rotate(-1.25deg);
 		color: #3d1f6b;
 		text-decoration-style: wavy;
+		text-underline-offset: 0.25em;
 	}
 	.gallery-lightbox-author {
 		margin: 0 0 10px 0;
@@ -352,7 +360,7 @@ const prepared = items.map((item) => {
 	}
 	.gallery-lightbox-close {
 		top: 20px;
-		right: 20px;
+		left: 20px;
 		font-size: 2.5rem;
 		line-height: 1;
 	}
@@ -372,6 +380,13 @@ const prepared = items.map((item) => {
 	}
 	body.gallery-lightbox-open {
 		overflow: hidden;
+	}
+	/* On desktop the prev/next arrows sit at the vertical centre; keep the
+	   media clear of them so wide images don't slide underneath. */
+	@media (min-width: 769px) {
+		.gallery-lightbox-image-wrapper {
+			padding-inline: 80px;
+		}
 	}
 	@media (max-width: 768px) {
 		.gallery-lightbox-prev,
