@@ -1,0 +1,79 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SanityImage from "../../components/SanityImage.astro";
+import { getChapters } from "../../lib/sanity/queries";
+
+const chapters = await getChapters();
+---
+
+<BaseLayout title="Chapters — A State of Becoming" wide={true}>
+	<h1>Chapters</h1>
+	<div class="chapter-grid">
+		{chapters.map((chapter) => (
+			<a class="chapter-card" href={`/chapters/${chapter.slug}`}>
+				{chapter.featuredImage && (
+					<div class="chapter-card-image">
+						<SanityImage image={chapter.featuredImage} width={600} height={400} alt={chapter.title} />
+					</div>
+				)}
+				<div class="chapter-card-body">
+					<span class="chapter-number">Chapter {chapter.order}</span>
+					<h2>{chapter.title}</h2>
+				</div>
+			</a>
+		))}
+	</div>
+	{chapters.length === 0 && (
+		<p class="empty">No chapters published yet. Add chapters in the <a href="/studio">Studio</a>.</p>
+	)}
+</BaseLayout>
+
+<style>
+	.chapter-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
+		margin-top: 2rem;
+	}
+	.chapter-card {
+		display: flex;
+		flex-direction: column;
+		border-radius: 12px;
+		overflow: hidden;
+		background: rgb(var(--color-neutral));
+		border: 1px solid rgb(var(--color-neutral-200));
+		text-decoration: none;
+		color: inherit;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+	.chapter-card:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 16px 32px rgba(var(--color-neutral-900), 0.12);
+		text-decoration: none;
+	}
+	.chapter-card-image {
+		aspect-ratio: 3 / 2;
+		overflow: hidden;
+	}
+	.chapter-card-image :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.chapter-card-body {
+		padding: 1.25rem;
+	}
+	.chapter-number {
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: rgb(var(--color-primary-600));
+	}
+	.chapter-card-body h2 {
+		font-size: 1.3rem;
+		margin: 0.4rem 0 0;
+	}
+	.empty {
+		color: rgb(var(--color-neutral-500));
+	}
+</style>

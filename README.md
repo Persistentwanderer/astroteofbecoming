@@ -1,64 +1,117 @@
-# Astro Starter Kit: Blog
+# A State of Becoming
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/astro-blog-starter-template)
+The book project *A State of Becoming* (Dinos Aristidou & Neil Farrelly),
+rebuilt as an [Astro](https://astro.build/) site backed by
+[Sanity](https://www.sanity.io/) and deployed on Cloudflare Workers.
 
-![Astro Template Preview](https://github.com/withastro/astro/assets/2244813/ff10799f-a816-4703-b967-c78997e8323d)
+The client edits all content (chapters, sections, the contributor gallery,
+About/Contact pages) through the embedded Sanity Studio at `/studio`.
 
-<!-- dash-content-start -->
+## Stack
 
-Create a blog with Astro and deploy it on Cloudflare Workers as a [static website](https://developers.cloudflare.com/workers/static-assets/).
+- **Astro 5** (SSR via `@astrojs/cloudflare`)
+- **Sanity** headless CMS + embedded Studio
+- **Cloudflare Workers** hosting
 
-Features:
+## Architecture
 
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and OpenGraph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
-- ✅ Built-in Observability logging
-
-<!-- dash-content-end -->
-
-## Getting Started
-
-Outside of this repo, you can start a new project with this template using [C3](https://developers.cloudflare.com/pages/get-started/c3/) (the `create-cloudflare` CLI):
-
-```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/astro-blog-starter-template
+```
+Sanity Studio (/studio)  ->  Sanity dataset + asset CDN
+                                     |
+                                 GROQ queries
+                                     v
+                         Astro (SSR on Cloudflare)  ->  visitors
 ```
 
-A live public deployment of this template is available at [https://astro-blog-starter-template.templates.workers.dev](https://astro-blog-starter-template.templates.workers.dev)
+Images, audio, and video are stored in Sanity's asset CDN. A `galleryItem` can
+either hold an uploaded `videoFile` (plays inline in the lightbox) or an
+external `videoUrl` (Vimeo / YouTube / direct link) as an alternative.
 
-## 🚀 Project Structure
+## Content model (Sanity schemas)
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Defined in `src/sanity/schemaTypes/`:
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+| Type | Purpose |
+| --- | --- |
+| `siteSettings` | Singleton: site title, homepage hero, contact email, book link |
+| `chapter` | A book chapter (title, order, featured image, intro) |
+| `section` | A section within a chapter (reflection lines + story) |
+| `gallery` | A named gallery (e.g. "What is your power?") |
+| `galleryItem` | A contributor response (image, description, video, audio, link) |
+| `contributor` | A contributor profile |
+| `page` | Generic editable page (About, Contact) |
 
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
+## Getting started
 
-Any static assets, like images, can be placed in the `public/` directory.
+1. Install dependencies:
 
-## 🧞 Commands
+   ```bash
+   npm install
+   ```
 
-All commands are run from the root of the project, from a terminal:
+2. Create a Sanity project at https://www.sanity.io/manage, then copy your
+   project ID into a `.env` file (see `.env.example`):
 
-| Command                           | Action                                           |
-| :-------------------------------- | :----------------------------------------------- |
-| `npm install`                     | Installs dependencies                            |
-| `npm run dev`                     | Starts local dev server at `localhost:4321`      |
-| `npm run build`                   | Build your production site to `./dist/`          |
-| `npm run preview`                 | Preview your build locally, before deploying     |
-| `npm run astro ...`               | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help`         | Get help using the Astro CLI                     |
-| `npm run build && npm run deploy` | Deploy your production site to Cloudflare        |
-| `npm wrangler tail`               | View real-time logs for all Workers              |
+   ```
+   PUBLIC_SANITY_PROJECT_ID=your_project_id
+   PUBLIC_SANITY_DATASET=production
+   ```
 
-## 👀 Want to learn more?
+3. Run the dev server:
 
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+   ```bash
+   npm run dev
+   ```
 
-## Credit
+   - Site: http://localhost:4321
+   - Studio: http://localhost:4321/studio
 
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+## Migrating the old Hugo content
+
+A one-off script imports chapters, sections, and the gallery from the previous
+Hugo site (expected one level up in `../content`). It needs a write token from
+https://www.sanity.io/manage (API > Tokens, Editor permissions):
+
+```bash
+PUBLIC_SANITY_PROJECT_ID=xxxx \
+PUBLIC_SANITY_DATASET=production \
+SANITY_API_WRITE_TOKEN=sk... \
+npm run migrate
+```
+
+By default the migration only imports the first chapter
+(`you-know-what-you-have-to-do`) and its gallery. To import more, set
+`ONLY_CHAPTERS`:
+
+```bash
+# everything
+ONLY_CHAPTERS=all npm run migrate
+
+# specific chapters (comma-separated slugs)
+ONLY_CHAPTERS=look-closer,find-the-constant npm run migrate
+```
+
+Override the source location with `OLD_SITE_DIR=/path/to/old/site` if needed.
+
+Note: the script converts inline HTML in gallery descriptions into Portable
+Text and drops bold/italic emphasis. Review imported content in the Studio.
+
+## Deploying to Cloudflare
+
+```bash
+npm run build
+npm run deploy
+```
+
+Set `PUBLIC_SANITY_PROJECT_ID` and `PUBLIC_SANITY_DATASET` as Worker
+environment variables in the Cloudflare dashboard (or `wrangler.json` vars).
+
+## Commands
+
+| Command | Action |
+| --- | --- |
+| `npm run dev` | Start the dev server (site + Studio) |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview the production build with Wrangler |
+| `npm run migrate` | Import old Hugo content into Sanity |
+| `npm run deploy` | Deploy to Cloudflare Workers |

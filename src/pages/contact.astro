@@ -1,0 +1,89 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import RichText from "../components/RichText.astro";
+import { getPageBySlug, getSiteSettings } from "../lib/sanity/queries";
+
+const [page, settings] = await Promise.all([
+	getPageBySlug("contact"),
+	getSiteSettings(),
+]);
+
+// Keeps the existing Formspree endpoint from the original site.
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/xaqaenyp";
+const email = settings?.contactEmail ?? "hello@astateofbecoming.com";
+---
+
+<BaseLayout title="Contact — A State of Becoming">
+	<article class="prose">
+		<h1>{page?.title ?? "Contact"}</h1>
+		{page?.body && <RichText value={page.body} />}
+
+		<form class="contact-form" action={FORMSPREE_ENDPOINT} method="POST">
+			<label>
+				Name
+				<input type="text" name="name" required />
+			</label>
+			<label>
+				Email
+				<input type="email" name="email" required />
+			</label>
+			<label>
+				Message
+				<textarea name="message" rows="6" required></textarea>
+			</label>
+			<button type="submit">Send message</button>
+		</form>
+
+		<p class="email-fallback">
+			Or email us directly at <a href={`mailto:${email}`}>{email}</a>.
+		</p>
+	</article>
+</BaseLayout>
+
+<style>
+	.contact-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		margin: 2rem 0;
+	}
+	.contact-form label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		font-weight: 600;
+		color: rgb(var(--color-neutral-700));
+	}
+	.contact-form input,
+	.contact-form textarea {
+		font-family: inherit;
+		font-size: 1rem;
+		padding: 0.75em;
+		border: 1px solid rgb(var(--color-neutral-300));
+		border-radius: 8px;
+		background: rgb(var(--color-neutral));
+	}
+	.contact-form input:focus,
+	.contact-form textarea:focus {
+		outline: none;
+		border-color: rgb(var(--color-primary-500));
+		box-shadow: 0 0 0 3px rgb(var(--color-primary-100));
+	}
+	.contact-form button {
+		align-self: flex-start;
+		padding: 0.8em 1.8em;
+		background: rgb(var(--color-primary-600));
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		font-weight: 600;
+		font-size: 1rem;
+		cursor: pointer;
+	}
+	.contact-form button:hover {
+		background: rgb(var(--color-primary-700));
+	}
+	.email-fallback {
+		color: rgb(var(--color-neutral-600));
+	}
+</style>

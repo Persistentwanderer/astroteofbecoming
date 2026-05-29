@@ -1,0 +1,51 @@
+---
+import { urlFor } from "../lib/sanity/image";
+import type { SanityImageWithAlt } from "../lib/sanity/types";
+
+interface Props {
+	image?: SanityImageWithAlt | null;
+	width?: number;
+	height?: number;
+	alt?: string;
+	class?: string;
+	loading?: "lazy" | "eager";
+	sizes?: string;
+}
+
+const {
+	image,
+	width = 1200,
+	height,
+	alt,
+	class: className,
+	loading = "lazy",
+	sizes,
+} = Astro.props;
+
+let src: string | undefined;
+let srcset: string | undefined;
+
+if (image?.asset) {
+	let base = urlFor(image).width(width).auto("format").fit("max");
+	if (height) base = base.height(height);
+	src = base.url();
+
+	// Responsive widths for sharper rendering on larger screens.
+	srcset = [width, width * 1.5, width * 2]
+		.map((w) => `${urlFor(image).width(Math.round(w)).auto("format").url()} ${Math.round(w)}w`)
+		.join(", ");
+}
+---
+
+{src && (
+	<img
+		src={src}
+		srcset={srcset}
+		sizes={sizes}
+		alt={alt ?? image?.alt ?? ""}
+		width={width}
+		height={height}
+		loading={loading}
+		decoding="async"
+	/>
+)}

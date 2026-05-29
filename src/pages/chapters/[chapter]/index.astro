@@ -1,0 +1,121 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SanityImage from "../../../components/SanityImage.astro";
+import RichText from "../../../components/RichText.astro";
+import { getChapterBySlug } from "../../../lib/sanity/queries";
+
+const { chapter: chapterSlug } = Astro.params;
+const chapter = chapterSlug ? await getChapterBySlug(chapterSlug) : null;
+
+if (!chapter) {
+	return new Response(null, { status: 404, statusText: "Chapter not found" });
+}
+---
+
+<BaseLayout title={`${chapter.title} — A State of Becoming`} wide={true}>
+	{chapter.featuredImage && (
+		<div class="chapter-hero">
+			<SanityImage image={chapter.featuredImage} width={1400} alt={chapter.title} loading="eager" />
+		</div>
+	)}
+	<header class="chapter-header">
+		<span class="chapter-number">Chapter {chapter.order}</span>
+		<h1>{chapter.title}</h1>
+		<RichText value={chapter.intro} />
+	</header>
+
+	<div class="section-list">
+		{chapter.sections?.map((section) => (
+			<a class="section-card" href={`/chapters/${chapter.slug}/${section.slug}`}>
+				{section.featuredImage && (
+					<div class="section-card-image">
+						<SanityImage image={section.featuredImage} width={500} height={500} alt={section.title} />
+					</div>
+				)}
+				<div class="section-card-body">
+					<h2>{section.title}</h2>
+					{section.reflection && section.reflection.length > 0 && (
+						<p class="section-reflection">{section.reflection[0]}</p>
+					)}
+				</div>
+			</a>
+		))}
+	</div>
+
+	{(!chapter.sections || chapter.sections.length === 0) && (
+		<p class="empty">No sections in this chapter yet.</p>
+	)}
+</BaseLayout>
+
+<style>
+	.chapter-hero {
+		border-radius: 14px;
+		overflow: hidden;
+		margin-bottom: 2rem;
+		max-height: 420px;
+	}
+	.chapter-hero :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.chapter-header {
+		max-width: var(--content-width);
+		margin: 0 auto 3rem;
+		text-align: center;
+	}
+	.chapter-number {
+		font-size: 0.85rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: rgb(var(--color-primary-600));
+	}
+	.chapter-header h1 {
+		margin: 0.5rem 0 1rem;
+	}
+	.section-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.5rem;
+	}
+	.section-card {
+		display: flex;
+		flex-direction: column;
+		border-radius: 12px;
+		overflow: hidden;
+		background: rgb(var(--color-neutral));
+		border: 1px solid rgb(var(--color-neutral-200));
+		color: inherit;
+		text-decoration: none;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+	.section-card:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 16px 32px rgba(var(--color-neutral-900), 0.12);
+		text-decoration: none;
+	}
+	.section-card-image {
+		aspect-ratio: 1 / 1;
+		overflow: hidden;
+	}
+	.section-card-image :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.section-card-body {
+		padding: 1.25rem;
+	}
+	.section-card-body h2 {
+		font-size: 1.2rem;
+		margin: 0 0 0.5rem;
+	}
+	.section-reflection {
+		color: rgb(var(--color-neutral-600));
+		font-size: 0.95rem;
+		margin: 0;
+	}
+	.empty {
+		color: rgb(var(--color-neutral-500));
+	}
+</style>

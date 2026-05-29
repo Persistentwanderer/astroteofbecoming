@@ -1,0 +1,43 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
+import { getChapters } from "../lib/sanity/queries";
+
+interface Props {
+	title?: string;
+	description?: string;
+	image?: string;
+	wide?: boolean;
+}
+
+const {
+	title = SITE_TITLE,
+	description = SITE_DESCRIPTION,
+	image,
+	wide = false,
+} = Astro.props;
+
+// Chapters drive the navigation, in book order.
+let chapters: { title: string; slug: string }[] = [];
+try {
+	chapters = await getChapters();
+} catch {
+	chapters = [];
+}
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} image={image} />
+	</head>
+	<body>
+		<Header chapters={chapters} />
+		<main class={wide ? "wide" : undefined}>
+			<slot />
+		</main>
+		<Footer />
+	</body>
+</html>

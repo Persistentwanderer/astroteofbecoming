@@ -1,0 +1,392 @@
+---
+import { urlFor } from "../lib/sanity/image";
+import { portableTextToHtml } from "../lib/sanity/portableTextToHtml";
+import type { GalleryItem } from "../lib/sanity/types";
+
+interface Props {
+	items: GalleryItem[];
+	columns?: number;
+	id?: string;
+}
+
+const { items, columns = 3, id = "gallery-grid" } = Astro.props;
+
+// Prepare flat, serialisable item data for the client lightbox.
+const prepared = items.map((item) => {
+	const src = item.image?.asset
+		? urlFor(item.image).width(900).auto("format").url()
+		: "";
+	const full = item.image?.asset
+		? urlFor(item.image).width(1800).auto("format").url()
+		: src;
+	// Uploaded video file takes priority; fall back to an external URL.
+	const video = item.videoFileUrl ?? item.videoUrl ?? "";
+	// A self-hosted/direct file can play inline; YouTube/Vimeo open out.
+	const inlineVideo =
+		!!item.videoFileUrl ||
+		(!!item.videoUrl && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(item.videoUrl));
+	return {
+		src,
+		full,
+		title: item.title ?? "",
+		author: item.author ?? "",
+		description: portableTextToHtml(item.description),
+		fullStory: portableTextToHtml(item.fullStory),
+		link: item.externalLink ?? (inlineVideo ? "" : video),
+		video: inlineVideo ? video : "",
+		audio: item.audioUrl ?? "",
+		titleStyle: item.titleStyle ?? "default",
+	};
+});
+---
+
+<div id={id} class="gallery-grid-container" data-gallery-id={id}>
+	<div class:list={["gallery-grid", `gallery-grid-cols-${columns}`]}>
+		{prepared.map((item, index) => (
+			<div
+				class="gallery-item"
+				data-index={index}
+				data-src={item.full}
+				data-title={item.title}
+				data-author={item.author}
+				data-description={item.description}
+				data-full-story={item.fullStory}
+				data-link={item.link}
+				data-video={item.video}
+				data-audio={item.audio}
+				data-title-style={item.titleStyle}
+			>
+				<img src={item.src} alt={item.title} loading="lazy" decoding="async" />
+				{item.video && <span class="gallery-item-play" aria-hidden="true"></span>}
+			</div>
+		))}
+	</div>
+
+	<div class="gallery-lightbox" id={`${id}-lightbox`} role="dialog" aria-modal="true" aria-label="Gallery Lightbox">
+		<button class="gallery-lightbox-close" aria-label="Close gallery">&times;</button>
+		<button class="gallery-lightbox-prev" aria-label="Previous image">&#8249;</button>
+		<button class="gallery-lightbox-next" aria-label="Next image">&#8250;</button>
+		<div class="gallery-lightbox-content">
+			<div class="gallery-lightbox-image-wrapper">
+				<img class="gallery-lightbox-image" src="" alt="" loading="eager" />
+				<video class="gallery-lightbox-video" controls playsinline preload="metadata" style="display:none;"></video>
+			</div>
+			<div class="gallery-lightbox-caption">
+				<div class="gallery-lightbox-caption-inner">
+					<h3 class="gallery-lightbox-title"></h3>
+					<p class="gallery-lightbox-author"></p>
+					<div class="gallery-lightbox-description"></div>
+					<div class="gallery-lightbox-actions">
+						<a class="gallery-lightbox-link" href="" target="_blank" rel="noopener noreferrer" style="display:none;"></a>
+						<button type="button" class="gallery-lightbox-action gallery-lightbox-story-btn" style="display:none;">Read full text</button>
+						<button type="button" class="gallery-lightbox-action gallery-lightbox-audio-btn" style="display:none;" aria-label="Play audio">Listen</button>
+					</div>
+					<audio class="gallery-lightbox-audio" style="display:none;"></audio>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style is:global>
+	.gallery-grid-container {
+		width: 100%;
+		margin: 0 auto;
+	}
+	.gallery-grid {
+		position: relative;
+		width: 100%;
+		min-height: 0;
+	}
+	.gallery-item {
+		position: absolute;
+		cursor: pointer;
+		overflow: hidden;
+		transition: transform 0.2s ease, opacity 0.2s ease;
+		width: calc(50% - 5px);
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+		line-height: 0;
+		border-radius: 8px;
+	}
+	.gallery-grid-cols-3 .gallery-item {
+		width: calc(33.333% - 6.67px);
+	}
+	.gallery-item:hover {
+		transform: translateY(-2px);
+		opacity: 0.9;
+	}
+	.gallery-item img {
+		width: 100%;
+		height: auto;
+		display: block;
+		vertical-align: top;
+		border-radius: 8px;
+	}
+	.gallery-item-play {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 56px;
+		height: 56px;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.55);
+		pointer-events: none;
+	}
+	.gallery-item-play::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: 54%;
+		transform: translate(-50%, -50%);
+		border-style: solid;
+		border-width: 11px 0 11px 18px;
+		border-color: transparent transparent transparent #fff;
+	}
+	@media (max-width: 768px) {
+		.gallery-item,
+		.gallery-grid-cols-3 .gallery-item {
+			width: 100% !important;
+			left: 0 !important;
+		}
+	}
+
+	.gallery-lightbox {
+		display: none;
+		position: fixed;
+		inset: 0;
+		background-color: rgba(245, 246, 250, 0.97);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		z-index: 10000;
+		overflow: hidden;
+	}
+	.gallery-lightbox.active {
+		display: block;
+	}
+	.gallery-lightbox-content {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-gutter: stable;
+		padding: max(15px, env(safe-area-inset-top, 0px)) 20px 20px;
+		box-sizing: border-box;
+	}
+	.gallery-lightbox-content.full-caption {
+		justify-content: flex-start;
+	}
+	.gallery-lightbox-image-wrapper {
+		width: 100%;
+		max-width: 95vw;
+		margin-inline: auto;
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		min-height: 0;
+		padding: 0 10px;
+		box-sizing: border-box;
+	}
+	.gallery-lightbox-content.full-caption .gallery-lightbox-image-wrapper {
+		flex: 1 1 0;
+		align-items: center;
+	}
+	.gallery-lightbox-content.no-caption .gallery-lightbox-image-wrapper {
+		max-height: 92vh;
+	}
+	.gallery-lightbox-content.minimal-caption .gallery-lightbox-image-wrapper {
+		max-height: 82vh;
+	}
+	.gallery-lightbox-image {
+		max-width: 100%;
+		max-height: 100%;
+		width: auto;
+		height: auto;
+		object-fit: contain;
+		pointer-events: none;
+		display: block;
+		border-radius: 6px;
+		box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+	}
+	.gallery-lightbox-video {
+		max-width: 100%;
+		max-height: 82vh;
+		width: auto;
+		height: auto;
+		display: block;
+		border-radius: 6px;
+		background: #000;
+		box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+	}
+	.gallery-lightbox-caption {
+		width: 100%;
+		max-width: 95vw;
+		margin-inline: auto;
+		max-height: 50dvh;
+		background-color: #fff;
+		box-sizing: border-box;
+		border-radius: 12px 12px 0 0;
+		box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		overflow-x: hidden;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+	.gallery-lightbox-content.full-caption .gallery-lightbox-caption:not(.hidden) {
+		flex: 0 0 auto;
+		height: auto;
+	}
+	.gallery-lightbox-caption.hidden {
+		display: none !important;
+	}
+	.gallery-lightbox-caption.minimal {
+		padding: 15px 30px;
+	}
+	.gallery-lightbox-caption.normal {
+		padding: 20px 35px;
+	}
+	.gallery-lightbox-caption.full {
+		padding: 25px 10px;
+		padding-bottom: calc(25px + env(safe-area-inset-bottom, 0px));
+	}
+	.gallery-lightbox-caption-inner {
+		max-width: 100%;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+	.gallery-lightbox-title {
+		margin: 0 0 8px 0;
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: #1a1a1a;
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 4px;
+	}
+	.gallery-lightbox-title.wacky {
+		font-family: "Chalkduster", "Marker Felt", "Bradley Hand ITC", cursive, fantasy;
+		font-weight: 400;
+		font-style: italic;
+		letter-spacing: 0.06em;
+		transform: rotate(-1.25deg);
+		color: #3d1f6b;
+		text-decoration-style: wavy;
+	}
+	.gallery-lightbox-author {
+		margin: 0 0 10px 0;
+		font-size: 1rem;
+		color: #4a4a4a;
+		font-style: italic;
+	}
+	.gallery-lightbox-description {
+		margin: 0 0 15px 0;
+		font-size: 1rem;
+		line-height: 1.6;
+		color: #333;
+	}
+	.gallery-lightbox-description :last-child {
+		margin-bottom: 0;
+	}
+	.gallery-lightbox-actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 10px;
+		margin-top: 12px;
+	}
+	.gallery-lightbox-actions .gallery-lightbox-link,
+	.gallery-lightbox-actions .gallery-lightbox-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 12px 24px;
+		background-color: rgb(var(--color-primary-600));
+		color: #fff !important;
+		border: none;
+		border-radius: 6px;
+		font-weight: 500;
+		font-size: 1rem;
+		font-family: inherit;
+		text-decoration: none;
+		cursor: pointer;
+		transition: background-color 0.2s ease, transform 0.2s ease;
+	}
+	.gallery-lightbox-actions .gallery-lightbox-link:hover,
+	.gallery-lightbox-actions .gallery-lightbox-action:hover {
+		background-color: rgb(var(--color-primary-700));
+		transform: translateY(-1px);
+	}
+	.gallery-lightbox-close,
+	.gallery-lightbox-prev,
+	.gallery-lightbox-next {
+		position: fixed;
+		background: rgba(26, 26, 26, 0.12);
+		border: none;
+		color: #1a1a1a;
+		font-size: 2rem;
+		width: 50px;
+		height: 50px;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background-color 0.2s ease, transform 0.2s ease;
+		z-index: 10001;
+		backdrop-filter: blur(5px);
+	}
+	.gallery-lightbox-close:hover,
+	.gallery-lightbox-prev:hover,
+	.gallery-lightbox-next:hover {
+		background: rgba(26, 26, 26, 0.22);
+	}
+	.gallery-lightbox-close {
+		top: 20px;
+		right: 20px;
+		font-size: 2.5rem;
+		line-height: 1;
+	}
+	.gallery-lightbox-prev {
+		left: 20px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+	.gallery-lightbox-next {
+		right: 20px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+	.gallery-lightbox-prev:hover,
+	.gallery-lightbox-next:hover {
+		transform: translateY(-50%) scale(1.1);
+	}
+	body.gallery-lightbox-open {
+		overflow: hidden;
+	}
+	@media (max-width: 768px) {
+		.gallery-lightbox-prev,
+		.gallery-lightbox-next {
+			display: none;
+		}
+		.gallery-lightbox-actions {
+			flex-direction: column;
+			align-items: stretch;
+		}
+	}
+</style>
+
+<script>
+	import { initGalleries } from "../scripts/gallery";
+	initGalleries();
+	document.addEventListener("astro:page-load", () => initGalleries());
+</script>

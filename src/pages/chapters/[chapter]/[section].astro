@@ -1,0 +1,94 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SanityImage from "../../../components/SanityImage.astro";
+import RichText from "../../../components/RichText.astro";
+import { getSectionBySlug } from "../../../lib/sanity/queries";
+
+const { chapter: chapterSlug, section: sectionSlug } = Astro.params;
+const section =
+	chapterSlug && sectionSlug
+		? await getSectionBySlug(chapterSlug, sectionSlug)
+		: null;
+
+if (!section) {
+	return new Response(null, { status: 404, statusText: "Section not found" });
+}
+---
+
+<BaseLayout title={`${section.title} — A State of Becoming`}>
+	<article class="section">
+		<nav class="breadcrumb">
+			<a href="/chapters">Chapters</a>
+			{section.chapter && (
+				<>
+					<span aria-hidden="true">/</span>
+					<a href={`/chapters/${section.chapter.slug}`}>{section.chapter.title}</a>
+				</>
+			)}
+		</nav>
+
+		<h1>{section.title}</h1>
+
+		{section.featuredImage && (
+			<figure class="section-image">
+				<SanityImage image={section.featuredImage} width={1200} alt={section.title} loading="eager" />
+			</figure>
+		)}
+
+		{section.reflection && section.reflection.length > 0 && (
+			<div class="reflection">
+				{section.reflection.map((line) => (
+					<p>{line}</p>
+				))}
+			</div>
+		)}
+
+		{section.story && section.story.length > 0 && (
+			<div class="story">
+				<RichText value={section.story} />
+			</div>
+		)}
+	</article>
+</BaseLayout>
+
+<style>
+	.breadcrumb {
+		font-size: 0.85rem;
+		color: rgb(var(--color-neutral-500));
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	.breadcrumb a {
+		color: rgb(var(--color-neutral-500));
+	}
+	.section h1 {
+		margin-bottom: 1.5rem;
+	}
+	.section-image {
+		margin: 0 0 2rem;
+		border-radius: 12px;
+		overflow: hidden;
+	}
+	.section-image :global(img) {
+		width: 100%;
+		display: block;
+	}
+	.reflection {
+		font-size: 1.4rem;
+		line-height: 1.5;
+		color: rgb(var(--color-primary-800));
+		font-style: italic;
+		margin-bottom: 2.5rem;
+	}
+	.reflection p {
+		margin: 0 0 0.75rem;
+	}
+	.story {
+		font-size: 1.1rem;
+		line-height: 1.75;
+		background: rgb(var(--color-neutral-100));
+		border-radius: 12px;
+		padding: 2rem;
+	}
+</style>

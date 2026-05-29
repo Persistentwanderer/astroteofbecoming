@@ -1,0 +1,39 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import RichText from "../../components/RichText.astro";
+import GalleryGrid from "../../components/GalleryGrid.astro";
+import { getGalleryBySlug } from "../../lib/sanity/queries";
+
+const { slug } = Astro.params;
+const gallery = slug ? await getGalleryBySlug(slug) : null;
+
+if (!gallery) {
+	return new Response(null, { status: 404, statusText: "Gallery not found" });
+}
+---
+
+<BaseLayout title={`${gallery.title} — A State of Becoming`} wide={true}>
+	<header class="gallery-header">
+		<h1>{gallery.title}</h1>
+		{gallery.intro && <RichText value={gallery.intro} />}
+		<p class="hint">Click on any image to explore the full story.</p>
+	</header>
+
+	<GalleryGrid
+		items={gallery.items}
+		columns={gallery.columns ?? 3}
+		id={`gallery-${gallery.slug}`}
+	/>
+</BaseLayout>
+
+<style>
+	.gallery-header {
+		text-align: center;
+		max-width: var(--content-width);
+		margin: 0 auto 2.5rem;
+	}
+	.hint {
+		color: rgb(var(--color-neutral-500));
+		font-size: 0.95rem;
+	}
+</style>

@@ -1,0 +1,31 @@
+---
+import { PortableText } from "astro-portabletext";
+import type { PortableTextBlock } from "@sanity/types";
+
+interface Props {
+	value?: PortableTextBlock[] | null;
+}
+
+const { value } = Astro.props;
+---
+
+{value && value.length > 0 && (
+	<div class="rich-text">
+		<PortableText value={value} />
+	</div>
+)}
+
+<style>
+	.rich-text :global(p) {
+		margin-bottom: 1.25em;
+	}
+	.rich-text :global(blockquote) {
+		border-left: 4px solid rgb(var(--color-primary-500));
+		padding-left: 1rem;
+		font-style: italic;
+		color: rgb(var(--color-neutral-700));
+	}
+	.rich-text :global(a) {
+		color: rgb(var(--color-primary-700));
+	}
+</style>
